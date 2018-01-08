@@ -18,7 +18,8 @@ public class PlayerController : MonoBehaviour
 		Walk,
 		Fall,
 		Hang,
-		Climb
+		Climb,
+		Throw
 	}
 
 	// Movement
