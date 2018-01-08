@@ -15,7 +15,10 @@ public class PlayerController : MonoBehaviour
 	[System.Serializable]
 	public enum PlayerState
 	{
-
+		Walk,
+		Fall,
+		Hang,
+		Climb
 	}
 
 	// Movement
