@@ -29,18 +29,18 @@ public class PlayerController : MonoBehaviour
 #endregion
 
 #region Player State
-	// [System.Serializable]
-	// public enum PlayerState
-	// {
-	// 	Walk,
-	// 	Fall,
-	// 	Hang,
-	// 	Climb,
-	// 	Throw
-	// }
-	// [Header("Player State")]
-	// [SerializeField]
-	// private PlayerState mState = PlayerState.Walk;
+	[System.Serializable]
+	public enum PlayerState
+	{
+		Walk,
+		Fall,
+		Hang,
+		Climb,
+		Throw
+	}
+	[Header("Player State")]
+	[SerializeField]
+	private PlayerState mState = PlayerState.Walk;
 #endregion
 
 #region Movement
@@ -106,6 +106,8 @@ public class PlayerController : MonoBehaviour
 	private float mCameraDistance = 1f;
 	[SerializeField]
 	private CinemachineFreeLook mFreeLook = null;
+	[SerializeField]
+	private GameObject mCameraPositionThrow = null;
 	private Quaternion mCameraDirection;
 	private float[] mRigRadii = new float[3];
 #endregion
@@ -157,8 +159,30 @@ public class PlayerController : MonoBehaviour
 		// );
 		// mInputDPadX = Input.GetAxisRaw("DPadX");
 		mInputDPadY = Input.GetAxisRaw("DPadY");
+		mInputTriggerL = Input.GetAxisRaw("TriggerL");
 	#endregion
 
+	#region State Machine
+	// Throw state
+	if (mInputTriggerL != 0f)
+	{
+		mState = PlayerState.Throw;
+		mFreeLook.m_Follow = mCameraPositionThrow.transform;
+		mFreeLook.m_LookAt = mCameraPositionThrow.transform;
+		transform.forward = mCameraDirection.eulerAngles;
+	}
+	// Walk state by default
+	else
+	{
+		mState = PlayerState.Walk;
+		mFreeLook.m_Follow = transform;
+		mFreeLook.m_LookAt = transform;
+	}
+	#endregion
+
+	#region Walk State
+	if (mState == PlayerState.Walk)
+	{
 	#region Camera Controls
 		mCameraDirection = Camera.main.transform.rotation;
 
@@ -185,6 +209,28 @@ public class PlayerController : MonoBehaviour
 		transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSlerpParameter);
 		mMovementVector += new Vector3(0f, /*mVerticalMovement*/ 0f, 0f);
 		mCharacterController.Move(mMovementVector);
+	#endregion
+	}
+	#endregion
+	#region Throw State
+	else if (mState == PlayerState.Throw)
+	{
+	#region Camera Controls
+		mCameraDirection = Camera.main.transform.rotation;
+		mFreeLook.m_Follow = mCameraPositionThrow.transform;
+		mFreeLook.m_LookAt = mCameraPositionThrow.transform;
+		
+	#endregion
+
+	#region Movement
+		// Calculating movement vector
+		mMovementVector = new Vector3(mInputLStick.x, 0f, mInputLStick.y);
+		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed * Time.deltaTime;
+
+		// Applying movement
+		transform.forward = Vector3.ProjectOnPlane(mCameraDirection.eulerAngles.normalized, Vector3.up);
+	#endregion
+	}
 	#endregion
 
 		// Debugging
