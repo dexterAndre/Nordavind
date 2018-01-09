@@ -62,6 +62,7 @@ public class EnemyController : MonoBehaviour {
     protected void GoBackToIdleState()
     {
         mNavmeshAgent.SetDestination(mLastPosition);
+        mTargetToFollow = null;
         followingMovingTarget = false;
     }
 
@@ -125,6 +126,11 @@ public class EnemyController : MonoBehaviour {
     protected float attackRange = 15f;
 
     /// <summary>
+    /// Will be true if an enemy have been found.
+    /// </summary>
+    protected bool foundEnemy = false;
+
+    /// <summary>
     /// Returns this unit's health.
     /// </summary>
     /// <returns>int</returns>
@@ -144,7 +150,7 @@ public class EnemyController : MonoBehaviour {
     /// <param name="mPostion"></param>
     /// <param name="targetPosition"></param>
     /// <returns></returns>
-    protected bool CheckIfHostileIsWithinRange(Vector3 mPosition)
+    protected void CheckIfHostileIsWithinRange(Vector3 mPosition)
     {
         Transform targetTransform = null;
 
@@ -161,12 +167,12 @@ public class EnemyController : MonoBehaviour {
         if (targetTransform == null)
         {
             print("This unit has no hostile targets in range.");
-            return false;
+            foundEnemy = false;
         }
         else
         {
             SetNavMeshDestinationToMovingObject(targetTransform);
-            return true;
+            foundEnemy = true;
         }
     }
 
