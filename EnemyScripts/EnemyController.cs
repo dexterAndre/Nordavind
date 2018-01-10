@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 
-public class EnemyController : MonoBehaviour {
+public class EnemyController : Actor {
 
     #region Pathfinding
 
@@ -138,6 +138,7 @@ public class EnemyController : MonoBehaviour {
         Nav_StartNavMesh();
         mNavMeshAgent.SetDestination(mLastPosition);
         mTargetToFollow = null;
+        ChangeCurrentStance(0);
         mNavMeshAgent.speed = mIdleSpeed;
         followingMovingTarget = false;
     }

@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class EnemySnowballer : EnemyController {
 
+    //Should change the pipeline to be more effience.
+
     #region Searching for enemies.
 
     /// <summary>
@@ -86,14 +88,26 @@ public class EnemySnowballer : EnemyController {
 
             if (charged && !checkDelayIfHit)
             {
-               StartCoroutine(WaitToCheckIfHit());
+                StartCoroutine(WaitToCheckIfHit());
+            }
+            else if (!CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position))
+            {
+                Nav_GoBackToIdleState();
+                charged = false;
+                gettingReadyToCharge = false;
+                selfDestructionInitialized = false;
+                CheckIfHostileIsWithinRange(transform.position);
             }
         }
     }
-
+   
+    /// <summary>
+    /// Waits a little bit before it checks if it hits the target, makes it easier to dodge. PS: should perhaps remake it.
+    /// </summary>
+    /// <returns></returns>
     private IEnumerator WaitToCheckIfHit() {
         checkDelayIfHit = true;
-        yield return new WaitForSeconds(0.25f);
+        yield return new WaitForSeconds(0.15f);
         float distance = (transform.position - mTargetToFollow.position).magnitude;
         if (distance < explosionZoneDistanceToActive)
         {
@@ -105,7 +119,6 @@ public class EnemySnowballer : EnemyController {
             {
                 Nav_GoBackToIdleState();
                 charged = false;
-                foundEnemy = false;
                 gettingReadyToCharge = false;
                 selfDestructionInitialized = false;
                 CheckIfHostileIsWithinRange(transform.position);
@@ -190,6 +203,7 @@ public class EnemySnowballer : EnemyController {
                 Nav_UpdateFollowingTarget();
             }
         }
+
         if (gettingReadyToCharge)
         {
             ChargeAtTarget();
