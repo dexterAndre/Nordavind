@@ -8,6 +8,77 @@ public class EnemyController : MonoBehaviour {
 
     #region Pathfinding
 
+    /// <summary>
+    /// These are the type of stances the behavior 
+    /// </summary>
+    protected enum TypeOfStances
+    {
+        Idle,
+        Following,
+        Attacking
+    };
+
+    /// <summary>
+    /// Current active stance, this will tell you if you're idle, following a target or attacking.
+    /// </summary>
+    protected TypeOfStances mCurrentStance = TypeOfStances.Idle;
+
+    /// <summary>
+    /// Changes the current stance depending of index inserted.
+    /// <para>  List:</para>
+    /// <para>  0 = Idle</para>
+    /// <para>  1 = Following</para>
+    /// <para>  2 = Attacking</para>
+    /// </summary>
+    /// <param name="stanceIndex"></param>
+    protected void ChangeCurrentStance(int stanceIndex)
+    {
+        if (stanceIndex == 0)
+            mCurrentStance = TypeOfStances.Idle;
+        else if (stanceIndex == 1)
+            mCurrentStance = TypeOfStances.Following;
+        else if (stanceIndex == 2)
+            mCurrentStance = TypeOfStances.Attacking;
+        else
+            print("The stance you chose does not exist.");
+    }
+
+    /// <summary>
+    /// Checking if the stanceIndex you sent in matches mCurrentStance.
+    /// <para>  List:</para>
+    /// <para>  0. Idle</para>
+    /// <para>  1. Following</para>
+    /// <para>  2. Attacking</para>
+    /// </summary>
+    /// <param name="stanceIndex"></param>
+    /// <returns></returns>
+    protected bool CheckStance(int stanceIndex)
+    {
+        if (stanceIndex == 0)
+        {
+            if (mCurrentStance == TypeOfStances.Idle)
+                return true;
+            else
+                return false;
+        }
+        else if (stanceIndex == 1)
+        {
+            if (mCurrentStance == TypeOfStances.Following)
+                return true;
+            else
+                return false;
+        }
+        else if (stanceIndex == 2)
+        {
+            if (mCurrentStance == TypeOfStances.Attacking)
+                return true;
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
     ///<summary>
     ///This is the agent that you will be using to move this unit with pathfinding.
     ///</summary>
@@ -36,6 +107,7 @@ public class EnemyController : MonoBehaviour {
             mNavMeshAgent.SetDestination(mTargetToFollow.position);
         }
     }
+
     ///<summary>
     ///Remembers the target's transform to be able to send in the correct information to UpdateFollowingTarget().
     ///</summary>
@@ -43,6 +115,8 @@ public class EnemyController : MonoBehaviour {
     {
         mTargetToFollow = target;
         followingMovingTarget = true;
+        mNavMeshAgent.speed = mCombatSpeed;
+        ChangeCurrentStance(1);
         print("Unit started following a hostile target");
     }
     
@@ -61,8 +135,10 @@ public class EnemyController : MonoBehaviour {
     /// </summary>
     protected void Nav_GoBackToIdleState()
     {
+        Nav_StartNavMesh();
         mNavMeshAgent.SetDestination(mLastPosition);
         mTargetToFollow = null;
+        mNavMeshAgent.speed = mIdleSpeed;
         followingMovingTarget = false;
     }
 
@@ -127,7 +203,7 @@ public class EnemyController : MonoBehaviour {
     /// <summary>
     /// Within this range this unit can use their attack against hostile units.
     /// </summary>
-    protected float attackRange = 15f;
+    protected float mAttackRange = 15f;
 
     /// <summary>
     /// Will be true if an enemy have been found.
@@ -171,6 +247,7 @@ public class EnemyController : MonoBehaviour {
         if (targetTransform == null)
         {
             print("This unit has no hostile targets in range.");
+            Nav_StartNavMesh();
             foundEnemy = false;
         }
         else
@@ -191,7 +268,7 @@ public class EnemyController : MonoBehaviour {
     protected bool CheckIfHostileIsWithinAttackRange(Vector3 mPosition, Vector3 targetPosition)
     {
         float distance = (mPosition - targetPosition).magnitude;
-        if (distance <= mDetectionRange)
+        if (distance <= mAttackRange)
         {
             return true;
         }
@@ -227,6 +304,10 @@ public class EnemyController : MonoBehaviour {
 
         if(GetComponent<Rigidbody>() != null)
             mRigidBody = GetComponent<Rigidbody>();
+
+        Nav_StartNavMesh();
+
+        mNavMeshAgent.speed = mIdleSpeed;
     }
     
     #endregion

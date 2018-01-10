@@ -31,6 +31,11 @@ public class EnemySnowballer : EnemyController {
     #region Charge
 
     /// <summary>
+    /// Bool used to make a delay before checking if the charge hit or not.
+    /// </summary>
+    private bool checkDelayIfHit = false;
+
+    /// <summary>
     /// Bool used to check if the charging sequence should be started.
     /// </summary>
     private bool gettingReadyToCharge = false;
@@ -64,25 +69,49 @@ public class EnemySnowballer : EnemyController {
     /// </summary>
     private void ChargeAtTarget()
     {
-        chargeTimer -= 1 * Time.deltaTime;
-        print(chargeTimer + " : until charge!");
-        Vector3 lookTargetWithoutY = mTargetToFollow.position;
-        lookTargetWithoutY = new Vector3(lookTargetWithoutY.x, 0, lookTargetWithoutY.z);
-        transform.LookAt(lookTargetWithoutY);
-        if (chargeTimer <= 0 && !charged)
+        if (!selfDestructionInitialized)
         {
-            transform.LookAt(mTargetToFollow.position);
-            mRigidBody.AddForce(transform.forward * chargeForce * Time.deltaTime);
-            gettingReadyToCharge = false;
-            charged = true;
-        }
-
-        if (charged)
-        {
-            float distance = (transform.position - mTargetToFollow.position).magnitude;
-            if (distance < explosionZoneDistanceToActive) {
-                StartCoroutine(SelfDestructionStart());
+            if(chargeTimer >= 0)
+                chargeTimer -= 1 * Time.deltaTime;
+            Vector3 lookTargetWithoutY = mTargetToFollow.position;
+            lookTargetWithoutY = new Vector3(lookTargetWithoutY.x, 0, lookTargetWithoutY.z);
+            transform.LookAt(lookTargetWithoutY);
+            if (chargeTimer <= 0 && !charged)
+            {
+                transform.LookAt(mTargetToFollow.position);
+                mRigidBody.AddForce(transform.forward * chargeForce * Time.deltaTime);
+                gettingReadyToCharge = false;
+                charged = true;
             }
+
+            if (charged && !checkDelayIfHit)
+            {
+               StartCoroutine(WaitToCheckIfHit());
+            }
+        }
+    }
+
+    private IEnumerator WaitToCheckIfHit() {
+        checkDelayIfHit = true;
+        yield return new WaitForSeconds(0.25f);
+        float distance = (transform.position - mTargetToFollow.position).magnitude;
+        if (distance < explosionZoneDistanceToActive)
+        {
+            StartCoroutine(SelfDestructionStart());
+        }
+        else
+        {
+            if (!(CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position)))
+            {
+                Nav_GoBackToIdleState();
+                charged = false;
+                foundEnemy = false;
+                gettingReadyToCharge = false;
+                selfDestructionInitialized = false;
+                CheckIfHostileIsWithinRange(transform.position);
+            }
+            else
+                StartCoroutine(WaitToCheckIfHit());
         }
     }
     #endregion
@@ -109,6 +138,7 @@ public class EnemySnowballer : EnemyController {
     {
         charged = false;
         mRigidBody.velocity = new Vector3(0f, mRigidBody.velocity.y, 0f);
+        selfDestructionInitialized = true;
         yield return new WaitForSeconds(selfDestructionAnimationDuration);
         Explode();
     }
@@ -136,23 +166,28 @@ public class EnemySnowballer : EnemyController {
 	
 	void Update ()
     {
-        if (!recentlySearchedForHostiles)
+        if (!recentlySearchedForHostiles && mCurrentStance == TypeOfStances.Idle)
         {
             StartCoroutine(SearchForEnemy(2f));
         }
 
-        if (foundEnemy && !gettingReadyToCharge)
+        if ((mCurrentStance == TypeOfStances.Following || mCurrentStance == TypeOfStances.Attacking) && !gettingReadyToCharge)
         {
-            if(mNavMeshAgent.enabled == true)
-                Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
-            else
+            if (CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position))
             {
-                if (CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position)) {
-                    gettingReadyToCharge = true;
-                    Nav_StopNavMesh();
-                    chargeTimer = 1f;
-                    print("Roar sound, and animation");
-                }
+                gettingReadyToCharge = true;
+                Nav_StopNavMesh();
+                chargeTimer = 1f;
+                print("Roar sound, and animation");
+            }
+            else if (mNavMeshAgent.enabled == true)
+            {
+                print("Should start moving");
+
+                if (mTargetToFollow == null)
+                    Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
+
+                Nav_UpdateFollowingTarget();
             }
         }
         if (gettingReadyToCharge)
