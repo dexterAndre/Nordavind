@@ -171,14 +171,6 @@ public class EnemyController : Actor {
     }
     #endregion
 
-    #region Animations
-    /// <summary>
-    /// This unit's "Animator", can be used to apply physics.
-    /// </summary>
-    protected Animator mAnimator = null;
-
-    #endregion
-
     #region Health / Game information
 
     /// <summary>
@@ -190,11 +182,6 @@ public class EnemyController : Actor {
     /// The speed you use when there is no hostile units.
     /// </summary>
     protected float mIdleSpeed = 5f;
-
-    /// <summary>
-    /// This unit's health, if  less than 0 this unit dies.
-    /// </summary>
-    protected int mHealth = 10;
 
     /// <summary>
     /// Within this range this unit can spot hostile units.
@@ -210,18 +197,6 @@ public class EnemyController : Actor {
     /// Will be true if an enemy have been found.
     /// </summary>
     protected bool foundEnemy = false;
-
-    /// <summary>
-    /// Returns this unit's health.
-    /// </summary>
-    /// <returns>int</returns>
-    protected int GetHealth() { return mHealth; }
-
-    /// <summary>
-    ///This function will deal damage to the unit it is attached to.
-    /// </summary>
-    /// <param name="damageDealt"></param>
-    public void TakeDamage(int damageDealt){ mHealth -= damageDealt; }
 
     /// <summary>
     /// Checks if there are any hostiles within range.
@@ -297,11 +272,10 @@ public class EnemyController : Actor {
     /// </summary>
     protected void SetComponentsAtStart()
     {
+        GetActorComponents();
+
         if (GetComponent<NavMeshAgent>() != null)
             mNavMeshAgent = GetComponent<NavMeshAgent>();
-
-        if (GetComponent<Animator>() != null)
-            mAnimator = GetComponent<Animator>();
 
         if(GetComponent<Rigidbody>() != null)
             mRigidBody = GetComponent<Rigidbody>();
