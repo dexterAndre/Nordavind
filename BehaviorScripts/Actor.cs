@@ -6,15 +6,21 @@ public class Actor : MonoBehaviour {
 
     #region Resources
 
+    [Header("Health")]
     /// <summary>
-    /// This is the unit's max health, and will be used at the start of the game, or whenever you have to reset the unit's health.
+    /// This is the max health of the unit, and is the health used when having to reset health during play.
     /// </summary>
     protected int mMaxHealth = 10;
 
     /// <summary>
+    /// This is the unit's max health, and will be used at the start of the game.
+    /// </summary>
+    [SerializeField]
+    protected int mStartingHealth = 10;
+
+    /// <summary>
     /// The unit's current health, this is the health used during gameplay.
     /// </summary>
-    [Header("Health")]
     [SerializeField]
     protected int mCurrentHealth = 0;
 
@@ -82,6 +88,10 @@ public class Actor : MonoBehaviour {
     {
         if (GetComponent<Animator>() != null)
             mAnimator = GetComponent<Animator>();
+        else if (this.transform.GetChild(0).GetComponent<Animator>() != null)
+            mAnimator = this.transform.GetChild(0).GetComponent<Animator>();
+        else
+            print("There is no animator on: " + this.transform.name);
     }
     #endregion
 

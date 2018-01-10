@@ -6,6 +6,16 @@ public class EnemySnowballer : EnemyController {
 
     //Should change the pipeline to be more effience.
 
+    #region Spawned during mother encounter
+
+    public void GetSpawnedAndPushed(Vector3 motherFowardAxis, float forceOfPush)
+    {
+        Nav_StopNavMesh();
+        mRigidBody.AddForce(motherFowardAxis * forceOfPush *Time.deltaTime, ForceMode.Impulse);
+    }
+
+    #endregion
+
     #region Searching for enemies.
 
     /// <summary>
@@ -99,6 +109,7 @@ public class EnemySnowballer : EnemyController {
                 CheckIfHostileIsWithinRange(transform.position);
             }
         }
+
     }
    
     /// <summary>

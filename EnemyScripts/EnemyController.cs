@@ -283,6 +283,8 @@ public class EnemyController : Actor {
         Nav_StartNavMesh();
 
         mNavMeshAgent.speed = mIdleSpeed;
+
+        Health_SetStandardHealth(mStartingHealth);
     }
     
     #endregion
