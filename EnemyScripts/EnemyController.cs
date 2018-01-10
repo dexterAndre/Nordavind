@@ -11,7 +11,7 @@ public class EnemyController : MonoBehaviour {
     ///<summary>
     ///This is the agent that you will be using to move this unit with pathfinding.
     ///</summary>
-    protected NavMeshAgent mNavmeshAgent = null;
+    protected NavMeshAgent mNavMeshAgent = null;
 
     ///<summary>
     ///This is the variable holding the current target you want to follow during a chase.
@@ -31,15 +31,15 @@ public class EnemyController : MonoBehaviour {
     ///<summary>
     ///The function you call to continue updating the position of this unit's target.
     ///</summary>
-    protected void UpdateFollowingTarget() {
+    protected void Nav_UpdateFollowingTarget() {
         if (followingMovingTarget) {
-            mNavmeshAgent.SetDestination(mTargetToFollow.position);
+            mNavMeshAgent.SetDestination(mTargetToFollow.position);
         }
     }
     ///<summary>
     ///Remembers the target's transform to be able to send in the correct information to UpdateFollowingTarget().
     ///</summary>
-    protected void SetNavMeshDestinationToMovingObject(Transform target)
+    protected void Nav_SetNavMeshDestinationToMovingObject(Transform target)
     {
         mTargetToFollow = target;
         followingMovingTarget = true;
@@ -50,18 +50,18 @@ public class EnemyController : MonoBehaviour {
     ///This function is called one time to set the destination of this unit to a certain world coordinate,
     ///will also be the change mLastPosition to this value incase a moving target is spotted.
     ///</summary>
-    protected void SetNavMeshDestinationToCertainPosition(Vector3 newTargetPosition)
+    protected void Nav_SetNavMeshDestinationToCertainPosition(Vector3 newTargetPosition)
     {
-        mNavmeshAgent.SetDestination(newTargetPosition);
+        mNavMeshAgent.SetDestination(newTargetPosition);
         mLastPosition = newTargetPosition;
     }
 
     /// <summary>
     /// Reseting this unit's destination to mLastPosition, also set the followingMovingTarget to FALSE.
     /// </summary>
-    protected void GoBackToIdleState()
+    protected void Nav_GoBackToIdleState()
     {
-        mNavmeshAgent.SetDestination(mLastPosition);
+        mNavMeshAgent.SetDestination(mLastPosition);
         mTargetToFollow = null;
         followingMovingTarget = false;
     }
@@ -69,22 +69,22 @@ public class EnemyController : MonoBehaviour {
     ///<summary>
     ///Turns the pathfinding system off. This gives the ability to move the unit automaticly.
     ///</summary>
-    protected void StopNavMesh()
+    protected void Nav_StopNavMesh()
     {
-        mNavmeshAgent.enabled = false;
+        mNavMeshAgent.enabled = false;
     }
     
     ///<summary>
     ///Turns the pathfinding system ON. This removes the ability to move the unit manually.
     ///</summary>
-    protected void StartNavMesh(){
-        mNavmeshAgent.enabled = true;
+    protected void Nav_StartNavMesh(){
+        mNavMeshAgent.enabled = true;
     }
 
     ///<summary>
     ///Saves the current position of this unit to mLastPosition.
     ///</summary>
-    private void SaveCurrentPosition(Vector3 mPosition)
+    private void Nav_SaveCurrentPosition(Vector3 mPosition)
     {
         mLastPosition = mPosition;
     }
@@ -171,7 +171,7 @@ public class EnemyController : MonoBehaviour {
         }
         else
         {
-            SetNavMeshDestinationToMovingObject(targetTransform);
+            Nav_SetNavMeshDestinationToMovingObject(targetTransform);
             foundEnemy = true;
         }
     }
@@ -216,7 +216,7 @@ public class EnemyController : MonoBehaviour {
     protected void SetComponentsAtStart()
     {
         if (GetComponent<NavMeshAgent>() != null)
-            mNavmeshAgent = GetComponent<NavMeshAgent>();
+            mNavMeshAgent = GetComponent<NavMeshAgent>();
 
         if (GetComponent<Animator>() != null)
             mAnimator = GetComponent<Animator>();
