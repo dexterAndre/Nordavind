@@ -29,18 +29,19 @@ public class PlayerController : MonoBehaviour
 #endregion
 
 #region Player State
-	// [System.Serializable]
-	// public enum PlayerState
-	// {
-	// 	Walk,
-	// 	Fall,
-	// 	Hang,
-	// 	Climb,
-	// 	Throw
-	// }
-	// [Header("Player State")]
-	// [SerializeField]
-	// private PlayerState mState = PlayerState.Walk;
+	[System.Serializable]
+	public enum PlayerState
+	{
+		Walk,
+		Fall,
+		Roll,
+		Hang,
+		Climb,
+		Throw
+	}
+	[Header("Player State")]
+	[SerializeField]
+	private PlayerState mState = PlayerState.Walk;
 #endregion
 
 #region Movement
@@ -77,15 +78,30 @@ public class PlayerController : MonoBehaviour
 	// private float mGravityScale = 1f;
 #endregion
 
-#region Dash
-	// [Header("Dash / Roll")]
-	// [SerializeField]
-	// private float mDashSpeed = 10f;
-	// [SerializeField]
-	// private float mDashCooldown = 2f;
-	// private float mDashCooldownTimer = 0f;
-	// [SerializeField]
-	// private float mDashDuration = 0.05f;
+#region Roll
+	[Header("Roll")]
+	[SerializeField]
+	private float mRollSpeed = 10f;
+	[SerializeField]
+	private float mRollCooldown = 2f;
+	[SerializeField]
+	private float mRollCooldownTimer = 0f;
+	[SerializeField]
+	private float mRollDuration = 0.05f;
+	[SerializeField]
+	private float mRollTimer = 0f;
+	private Vector3 mRollDirection;
+	/// <summary> 
+	/// Resets timers, updates player state, and sets mMovementVector. 
+	/// </summary>
+	private void InitiateRoll()
+	{
+		mRollCooldownTimer = 0f;
+		mRollTimer = 0f;
+		mState = PlayerState.Roll;
+
+		mMovementVector = Vector3.ProjectOnPlane(transform.forward, Vector3.up) * mRollSpeed;
+	}
 #endregion
 
 #region Hanging
@@ -106,6 +122,8 @@ public class PlayerController : MonoBehaviour
 	private float mCameraDistance = 1f;
 	[SerializeField]
 	private CinemachineFreeLook mFreeLook = null;
+	[SerializeField]
+	private GameObject mCameraPositionThrow = null;
 	private Quaternion mCameraDirection;
 	private float[] mRigRadii = new float[3];
 #endregion
@@ -134,6 +152,8 @@ public class PlayerController : MonoBehaviour
 	private void Start ()
 	{
 		mCharacterController = GetComponent<CharacterController>();
+		mRollCooldownTimer = mRollCooldown;
+		mRollTimer = 0f;
 
 		// Storing initial camera distances for all 3 camera rigs. 
 		for (int i = 0; i < 3; i++)
@@ -157,11 +177,59 @@ public class PlayerController : MonoBehaviour
 		// );
 		// mInputDPadX = Input.GetAxisRaw("DPadX");
 		mInputDPadY = Input.GetAxisRaw("DPadY");
+		mInputTriggerL = Input.GetAxisRaw("TriggerL");
 	#endregion
 
-	#region Camera Controls
-		mCameraDirection = Camera.main.transform.rotation;
 
+
+	#region State Machine
+	// Roll state
+	if (mRollCooldownTimer < mRollCooldown)
+	{
+		mRollCooldownTimer += Time.deltaTime;
+		if (mRollCooldownTimer >= mRollCooldown)
+		{
+			mRollCooldownTimer = mRollCooldown;
+		}
+	}
+	if (Input.GetButtonDown("Fire3") && mRollCooldownTimer >= mRollCooldown)
+	{
+		InitiateRoll();
+	}
+	if (mState == PlayerState.Roll)
+	{
+		// Handling timers
+		if (mRollTimer < mRollDuration)
+		{
+			mRollTimer += Time.deltaTime;
+			if (mRollTimer >= mRollDuration)
+			{
+				mRollTimer = 0f;
+				mState = PlayerState.Walk;
+			}
+		}
+	}
+	// Throw state
+	else if (mInputTriggerL != 0f)
+	{
+		mState = PlayerState.Throw;
+		mFreeLook.m_Follow = mCameraPositionThrow.transform;
+		mFreeLook.m_LookAt = mCameraPositionThrow.transform;
+		transform.forward = mCameraDirection.eulerAngles;
+	}
+	// Walk state by default
+	else
+	{
+		mState = PlayerState.Walk;
+		mFreeLook.m_Follow = transform;
+		mFreeLook.m_LookAt = transform;
+	}
+	#endregion
+
+	#region Walk State
+	if (mState == PlayerState.Walk)
+	{
+	#region Camera Controls
 		// Camera distance (for testing only)
 		mCameraDistance += mInputDPadY * mDPadSensitivity;
 		if (mCameraDistance < 0.0f)
@@ -178,13 +246,64 @@ public class PlayerController : MonoBehaviour
 
 	#region Movement
 		// Calculating movement vector
+		mCameraDirection = Camera.main.transform.rotation;
 		mMovementVector = new Vector3(mInputLStick.x, 0f, mInputLStick.y);
-		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed * Time.deltaTime;
+		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed;
 
 		// Applying movement
 		transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSlerpParameter);
 		mMovementVector += new Vector3(0f, /*mVerticalMovement*/ 0f, 0f);
-		mCharacterController.Move(mMovementVector);
+		mCharacterController.Move(mMovementVector * Time.deltaTime);
+	#endregion
+	}
+	#endregion
+	#region Throw State
+	else if (mState == PlayerState.Throw)
+	{
+	#region Camera Controls
+		mCameraDirection = Camera.main.transform.rotation;
+		mFreeLook.m_Follow = mCameraPositionThrow.transform;
+		mFreeLook.m_LookAt = mCameraPositionThrow.transform;
+		
+	#endregion
+
+	#region Movement
+		// Calculating movement vector
+		mMovementVector = new Vector3(mInputLStick.x, 0f, mInputLStick.y);
+		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed;
+
+		// Applying movement
+		transform.forward = Vector3.ProjectOnPlane(mCameraDirection.eulerAngles.normalized, Vector3.up);
+	#endregion
+	}
+	#endregion
+
+	#region Roll
+	if (mState == PlayerState.Roll)
+	{
+	#region Camera Controls
+		// Camera distance (for testing only)
+		mCameraDistance += mInputDPadY * mDPadSensitivity;
+		if (mCameraDistance < 0.0f)
+			mCameraDistance = 0.0f;
+		// Setting camera dolly distances for all 3 rigs. 
+		if (mInputDPadY != 0.0f)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
+			}
+		}
+	#endregion
+
+	#region Movement
+		// Applying movement
+		mCameraDirection = Camera.main.transform.rotation;
+		transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSlerpParameter);
+		mMovementVector += new Vector3(0f, /*mVerticalMovement*/ 0f, 0f);
+		mCharacterController.Move(mMovementVector * Time.deltaTime);
+	#endregion
+	}
 	#endregion
 
 		// Debugging
