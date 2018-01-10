@@ -73,6 +73,7 @@ public class EnemyController : MonoBehaviour {
     {
         mNavMeshAgent.enabled = false;
         mRigidBody.isKinematic = false;
+        mRigidBody.detectCollisions = true;
     }
     
     ///<summary>
@@ -81,6 +82,7 @@ public class EnemyController : MonoBehaviour {
     protected void Nav_StartNavMesh(){
         mNavMeshAgent.enabled = true;
         mRigidBody.isKinematic = true;
+        mRigidBody.detectCollisions = false;
     }
 
     ///<summary>
