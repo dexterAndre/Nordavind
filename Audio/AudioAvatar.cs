@@ -8,47 +8,47 @@ public class AudioAvatar : SFXController {
 
     public void Audio_WalkingInDeepSnow()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_Roll()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_Jump()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_Grab()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_LedgeMovement()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_HitGround()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_Climb()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_FallFromHeightDeath()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     public void Audio_DyingFromCombat()
     {
-        //mPrimaryAudioSource.PlayOneShot(mAudioClips[], 0.5f);
+        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
     }
 
     //This needs a lot of work, fix footsteps first and reuse the code to make this work better.
@@ -59,13 +59,13 @@ public class AudioAvatar : SFXController {
         {
             //Recreate to read the texture under your feet instead of using tags.
             if (footHit.collider.tag == "Snow")
-                mPrimaryAudioSource.PlayOneShot(mAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
             else if (footHit.collider.tag == "Gravel")
-                mPrimaryAudioSource.PlayOneShot(mAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
             else
             {
                 print("No material texture map detected. ###Snow used instead###");
-                mPrimaryAudioSource.PlayOneShot(mAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
             }
 
         }
@@ -113,7 +113,7 @@ public class AudioAvatar : SFXController {
     /// List of all the Audio Clips for the third Audio Source.
     /// </summary>
     [SerializeField]
-    private AudioClip[] mThirdAudioClips;
+    private AudioClip[] mThirdAudioClips = new AudioClip[3];
 
     private void Audio_CoverallsRubbing()
     {

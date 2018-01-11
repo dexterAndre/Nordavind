@@ -23,13 +23,55 @@ public class SFXController : MonoBehaviour {
     /// </summary>
     [Header("Audio files")]
     [SerializeField]
-    protected AudioClip[] mAudioClips;
+    protected AudioClip[] mPrimaryAudioClips = {
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+    };
 
     /// <summary>
     /// This is where you will put in Secondary Audio Clips that will be played from this unit's actions.
     /// </summary>
     [SerializeField]
-    protected AudioClip[] mSecondaryAudioClips;
+    protected AudioClip[] mSecondaryAudioClips = {
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+    };
 
     /// <summary>
     /// Saves the current volume, especially important while muted so you know what volume to put back on when unmuted.
@@ -73,17 +115,17 @@ public class SFXController : MonoBehaviour {
         {
             //Recreate to read the texture under your feet instead of using tags.
             if (footHit.collider.tag == "Snow")
-                return mAudioClips[SnowStepIndex];
+                return mPrimaryAudioClips[SnowStepIndex];
             else if (footHit.collider.tag == "Gravel")
-                return mAudioClips[GravelStepIndex];
+                return mPrimaryAudioClips[GravelStepIndex];
             else if (footHit.collider.tag == "Ice")
-                return mAudioClips[IceStepIndex];
+                return mPrimaryAudioClips[IceStepIndex];
             else if (footHit.collider.tag == "Wood")
-                return mAudioClips[WoodStepIndex];
+                return mPrimaryAudioClips[WoodStepIndex];
             else
             {
                 print("No footstep mapped to this tag. ###Snow used instead###");
-                return mAudioClips[SnowStepIndex];
+                return mPrimaryAudioClips[SnowStepIndex];
             }
                 
         }

@@ -20,7 +20,7 @@ public class AudioSnowballer : SFXController {
     /// </summary>
     public void Audio_Roar()
     {
-        mPrimaryAudioSource.PlayOneShot(mAudioClips[RoarIndex], 0.75f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[RoarIndex], 0.75f);
     }
 
     /// <summary>
@@ -28,7 +28,7 @@ public class AudioSnowballer : SFXController {
     /// </summary>
     public void Audio_Charge()
     {
-        mPrimaryAudioSource.PlayOneShot(mAudioClips[ChargeIndex], 0.75f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[ChargeIndex], 0.75f);
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public class AudioSnowballer : SFXController {
     /// </summary>
     public void Audio_Attack()
     {
-        mPrimaryAudioSource.PlayOneShot(mAudioClips[AttackIndex], 0.75f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[AttackIndex], 0.75f);
     }
 
     #endregion
