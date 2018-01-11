@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class AudioAvatar : SFXController {
 
-
     #region Update Functions
 
     private void Start()
