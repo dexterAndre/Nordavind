@@ -15,10 +15,12 @@ public class PlayerController : MonoBehaviour
 	- Roll and crash
 	- Camera controls only if elgible (e.g. not while throwing)
 	- Limit movement over edges to not fall down (especially if throwing)
+	- Camera: needs to have a better look upwards when close to avatar
+	- Dynamic input stick inversion
 */
 
 #region Input
-	// Temporary controls using a gamepad
+	// Temporary controls using a gamepad. Will extend to mouse and keyboard later. (also Rewired?)
 	[Header("Input")]
 	[SerializeField]
 	private float mDPadXSensitivity = 1f;
@@ -31,7 +33,9 @@ public class PlayerController : MonoBehaviour
 	private float mInputTriggerL;
 	// private float mInputTriggerR;
 	private Vector2 mInputLStick;
-	// private Vector2 mInputRStick;
+	[SerializeField]
+	private float mInputRStickSensitivity = 1f;
+	private Vector2 mInputRStick;
 #endregion
 #region Player State
 	[System.Serializable]
@@ -99,13 +103,22 @@ public class PlayerController : MonoBehaviour
 	}
 #endregion
 #region Throw
+[SerializeField]
+private float mThrowVerticalAngleMinimum = -90f;
+[SerializeField]
+private float mThrowVerticalAngleMaximum = 90f;
+private float mVerticalAngle = 0f;
+private Vector3 mCameraThrowLookAtOriginalDisplacement;
+private float mCameraThrowLookAtRadius;
 void InitiateThrow()
 {
 	mState = PlayerState.Throw;
 
 	// Setting camera mode (over-the-shoulder aiming)
-	mFreeLook.m_Follow = mCameraThrowPosition.transform;
-	mFreeLook.m_LookAt = mCameraThrowPosition.transform;
+	mFreeLook.m_Follow = mCameraThrowShoulder.transform;
+	mFreeLook.m_LookAt = mCameraThrowLookAt.transform;
+
+	mFreeLook.m_YAxis.Value = 1f;
 }
 #endregion
 #region Roll
@@ -156,7 +169,7 @@ void InitiateThrow()
 	[SerializeField]
 	private CinemachineFreeLook mFreeLook = null;
 	[SerializeField]
-	private GameObject mCameraThrowPosition = null;
+	private GameObject mCameraThrowShoulder = null;
 	[SerializeField]
 	private GameObject mCameraThrowLookAt = null;
 	private Quaternion mCameraDirection;
@@ -191,6 +204,11 @@ void InitiateThrow()
 		mRollCooldownTimer = mRollCooldown;
 		mRollTimer = 0f;
 
+		// Storing the displacement vector from Shoulder to ShoulderLookAt GameObjects in scene. 
+		mCameraThrowLookAtOriginalDisplacement = mCameraThrowLookAt.transform.position - mCameraThrowShoulder.transform.position;
+		// Storing radius of original displacement from Shoulder to ShoulderLookAt
+		mCameraThrowLookAtRadius = mCameraThrowLookAtOriginalDisplacement.magnitude;
+
 		// Default mode of locomotion
 		InitiateWalk();
 
@@ -210,30 +228,33 @@ void InitiateThrow()
 			Input.GetAxisRaw("Horizontal"),
 			Input.GetAxisRaw("Vertical")
 		);
-		// mInputRStick = new Vector2
-		// (
-		// 	Input.GetAxisRaw("RHorizontal"),
-		// 	Input.GetAxisRaw("RVertical")
-		// );
+		mInputRStick = new Vector2
+		(
+			Input.GetAxisRaw("RHorizontal"),
+			Input.GetAxisRaw("RVertical")
+		);
 		mInputDPadX = Input.GetAxisRaw("DPadX");
 		mInputDPadY = Input.GetAxisRaw("DPadY");
 		mInputTriggerL = Input.GetAxisRaw("TriggerL");
 
 		// Camera distance (for testing purposes only)
-		mCameraDistance += mInputDPadX * mDPadXSensitivity;
-		if (mCameraDistance < 0.0f)
-			mCameraDistance = 0.0f;
-		mCameraParameter += mInputDPadY * mDPadYSensitivity;
-		if (mCameraParameter < 0.0f)
-			mCameraParameter = 0.0f;
-		else if (mCameraParameter > 0.5f)
-			mCameraParameter = 0.5f;
-		// Setting camera dolly distances for all 3 rigs. 
-		if (mInputDPadX != 0.0f)
+		if (mState != PlayerState.Throw)
 		{
-			for (int i = 0; i < 3; i++)
+			mCameraDistance += mInputDPadX * mDPadXSensitivity;
+			if (mCameraDistance < 0.0f)
+				mCameraDistance = 0.0f;
+			mCameraParameter += mInputDPadY * mDPadYSensitivity;
+			if (mCameraParameter < 0.0f)
+				mCameraParameter = 0.0f;
+			else if (mCameraParameter > 0.5f)
+				mCameraParameter = 0.5f;
+			// Setting camera dolly distances for all 3 rigs. 
+			if (mInputDPadX != 0.0f)
 			{
-				mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
+				for (int i = 0; i < 3; i++)
+				{
+					mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
+				}
 			}
 		}
 	#endregion
@@ -308,6 +329,10 @@ void InitiateThrow()
 		else if (mState == PlayerState.Throw)
 		{
 			// Throw-to-walk
+			if (Mathf.Abs(mInputTriggerL) < 0.1f)
+			{
+				InitiateWalk();
+			}
 		}
 		else if (mState == PlayerState.Hang)
 		{
@@ -343,23 +368,14 @@ void InitiateThrow()
 	#region Movement
 		if (mState == PlayerState.Walk)
 		{
-			// Third person camera controls
-			// Distance control (for testing only)
+			// Camera controls
+			// Setting camera distance
 			mCameraDistance += mInputDPadX * mDPadXSensitivity;
-			// if (mCameraDistance < 0.0f)
-			// 	mCameraDistance = 0.0f;
+			if (mCameraDistance < 0.0f)
+				mCameraDistance = 0.0f;
 
-
+			// Setting camera curve parameter
 			mFreeLook.m_YAxis.Value = mCameraParameter;
-
-			// Setting camera dolly distances for all 3 rigs. 
-			if (mInputDPadY != 0.0f)
-			{
-				// for (int i = 0; i < 3; i++)
-				// {
-				// 	mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
-				// }
-			}
 
 			// Calculating movement vector
 			mCameraDirection = Camera.main.transform.rotation;
@@ -427,8 +443,26 @@ void InitiateThrow()
 		}
 		else if (mState == PlayerState.Throw)
 		{
-			// Rotating character with the camera
-			transform.forward = Vector3.ProjectOnPlane(mCameraDirection.eulerAngles, Vector3.up);
+			if (Mathf.Abs(mInputRStick.x) > 0.19f)
+			{
+				transform.Rotate(0f, mInputRStick.x * mInputRStickSensitivity, 0f);
+			}
+			// Rotating the throw mode LookAt object vertically. 
+			if (Mathf.Abs(mInputRStick.y) > 0.19f)
+			{
+				// Controlling the angle and clamping between [-90, 90]
+				mVerticalAngle += mInputRStick.y * mInputRStickSensitivity;
+				if (mVerticalAngle < mThrowVerticalAngleMinimum)
+					mVerticalAngle = mThrowVerticalAngleMinimum;
+				else if (mVerticalAngle > mThrowVerticalAngleMaximum)
+					mVerticalAngle = mThrowVerticalAngleMaximum;
+
+				// Applying rotation
+				mCameraThrowLookAt.transform.position 
+					= mCameraThrowShoulder.transform.position 
+					+ transform.forward * Mathf.Cos(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowLookAtRadius
+					+ Vector3.up * Mathf.Sin(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowLookAtRadius * (-1f);
+			}
 		}
 		else if (mState == PlayerState.Hang)
 		{
