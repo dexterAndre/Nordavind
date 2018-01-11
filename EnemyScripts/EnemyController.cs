@@ -263,6 +263,7 @@ public class EnemyController : Actor {
     #endregion
 
     #region StartUp
+    
     /// <summary>
     /// Here every component needed from the live scene will be set.
     /// <para>  List of components added:</para>
@@ -286,6 +287,6 @@ public class EnemyController : Actor {
 
         Health_SetStandardHealth(mStartingHealth);
     }
-    
+
     #endregion
 }

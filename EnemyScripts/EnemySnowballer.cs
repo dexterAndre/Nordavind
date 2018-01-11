@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class EnemySnowballer : EnemyController {
 
-    //Should change the pipeline to be more effience.
+    //Should change the pipeline to be more effient.
 
     #region Spawned during mother encounter
 
