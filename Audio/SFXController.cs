@@ -86,9 +86,14 @@ public class SFXController : MonoBehaviour {
     #region Components
 
     /// <summary>
-    /// The audio source that every unit uses to send out VFX.
+    /// The audio source that every unit uses to send out the main SFXs.
     /// </summary>
     protected AudioSource mAudioSource = null;
+
+    /// <summary>
+    /// The audio source that every unit uses to send out the secondary SFXs.
+    /// </summary>
+    protected AudioSource mBonusAudioSource = null;
 
     protected void GetSFXComponents()
     {
@@ -98,6 +103,8 @@ public class SFXController : MonoBehaviour {
             mAudioSource = this.transform.parent.GetComponent<AudioSource>();
         else
             print("This unit has no audio source avaible. ###consider adding one or removing audio scripts###");
+
+        if(this.transform.GetChild(0).GetComponent)
     }
 
     #endregion
