@@ -21,8 +21,10 @@ public class PlayerController : MonoBehaviour
 	// Temporary controls using a gamepad
 	[Header("Input")]
 	[SerializeField]
-	private float mDPadSensitivity = 1f;
-	// private float mInputDPadX;
+	private float mDPadXSensitivity = 1f;
+	[SerializeField]
+	private float mDPadYSensitivity = 1f;
+	private float mInputDPadX;
 	private float mInputDPadY;
 	// [SerializeField]
 	// private float mTriggersSensitivity = 1f;
@@ -63,6 +65,7 @@ public class PlayerController : MonoBehaviour
 		// Setting camera mode (third person follow-cam)
 		mFreeLook.m_Follow = transform;
 		mFreeLook.m_LookAt = transform;
+		mFreeLook.m_YAxis.Value = 0.5f;
 	}
 #endregion
 #region Rotation
@@ -99,11 +102,10 @@ public class PlayerController : MonoBehaviour
 void InitiateThrow()
 {
 	mState = PlayerState.Throw;
-	transform.forward = mCameraDirection.eulerAngles;
 
 	// Setting camera mode (over-the-shoulder aiming)
-	mFreeLook.m_Follow = mCameraPositionThrow.transform;
-	mFreeLook.m_LookAt = mCameraPositionThrow.transform;
+	mFreeLook.m_Follow = mCameraThrowPosition.transform;
+	mFreeLook.m_LookAt = mCameraThrowPosition.transform;
 }
 #endregion
 #region Roll
@@ -125,6 +127,8 @@ void InitiateThrow()
 		mRollCooldownTimer = 0f;
 		mRollTimer = 0f;
 		mState = PlayerState.Roll;
+
+		transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSlerpParameter);
 
 		mMovementVector = Vector3.ProjectOnPlane(transform.forward, Vector3.up) * mRollSpeed;
 	}
@@ -148,10 +152,13 @@ void InitiateThrow()
 	[Header("Camera")]
 	[SerializeField]
 	private float mCameraDistance = 1f;
+	private float mCameraParameter = 0.25f;	// In-between top and bottom view. 
 	[SerializeField]
 	private CinemachineFreeLook mFreeLook = null;
 	[SerializeField]
-	private GameObject mCameraPositionThrow = null;
+	private GameObject mCameraThrowPosition = null;
+	[SerializeField]
+	private GameObject mCameraThrowLookAt = null;
 	private Quaternion mCameraDirection;
 	private float[] mRigRadii = new float[3];
 #endregion
@@ -208,16 +215,21 @@ void InitiateThrow()
 		// 	Input.GetAxisRaw("RHorizontal"),
 		// 	Input.GetAxisRaw("RVertical")
 		// );
-		// mInputDPadX = Input.GetAxisRaw("DPadX");
+		mInputDPadX = Input.GetAxisRaw("DPadX");
 		mInputDPadY = Input.GetAxisRaw("DPadY");
 		mInputTriggerL = Input.GetAxisRaw("TriggerL");
 
 		// Camera distance (for testing purposes only)
-		mCameraDistance += mInputDPadY * mDPadSensitivity;
+		mCameraDistance += mInputDPadX * mDPadXSensitivity;
 		if (mCameraDistance < 0.0f)
 			mCameraDistance = 0.0f;
+		mCameraParameter += mInputDPadY * mDPadYSensitivity;
+		if (mCameraParameter < 0.0f)
+			mCameraParameter = 0.0f;
+		else if (mCameraParameter > 0.5f)
+			mCameraParameter = 0.5f;
 		// Setting camera dolly distances for all 3 rigs. 
-		if (mInputDPadY != 0.0f)
+		if (mInputDPadX != 0.0f)
 		{
 			for (int i = 0; i < 3; i++)
 			{
@@ -333,16 +345,20 @@ void InitiateThrow()
 		{
 			// Third person camera controls
 			// Distance control (for testing only)
-			mCameraDistance += mInputDPadY * mDPadSensitivity;
-			if (mCameraDistance < 0.0f)
-				mCameraDistance = 0.0f;
+			mCameraDistance += mInputDPadX * mDPadXSensitivity;
+			// if (mCameraDistance < 0.0f)
+			// 	mCameraDistance = 0.0f;
+
+
+			mFreeLook.m_YAxis.Value = mCameraParameter;
+
 			// Setting camera dolly distances for all 3 rigs. 
 			if (mInputDPadY != 0.0f)
 			{
-				for (int i = 0; i < 3; i++)
-				{
-					mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
-				}
+				// for (int i = 0; i < 3; i++)
+				// {
+				// 	mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
+				// }
 			}
 
 			// Calculating movement vector
@@ -365,16 +381,16 @@ void InitiateThrow()
 
 			// Third person camera controls
 			// Distance control (for testing only)
-			mCameraDistance += mInputDPadY * mDPadSensitivity;
+			mCameraDistance += mInputDPadX * mDPadXSensitivity;
 			if (mCameraDistance < 0.0f)
 				mCameraDistance = 0.0f;
 			// Setting camera dolly distances for all 3 rigs. 
 			if (mInputDPadY != 0.0f)
 			{
-				for (int i = 0; i < 3; i++)
-				{
-					mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
-				}
+				// for (int i = 0; i < 3; i++)
+				// {
+				// 	mFreeLook.m_Orbits[i].m_Radius = mRigRadii[i] * mCameraDistance;
+				// }
 			}
 
 			// Calculating movement vector
@@ -405,12 +421,14 @@ void InitiateThrow()
 					mState = PlayerState.Walk;
 				}
 			}
-
-			// 
+			
+			// Applying movement
+			mCharacterController.Move(mMovementVector * Time.deltaTime);
 		}
 		else if (mState == PlayerState.Throw)
 		{
-			
+			// Rotating character with the camera
+			transform.forward = Vector3.ProjectOnPlane(mCameraDirection.eulerAngles, Vector3.up);
 		}
 		else if (mState == PlayerState.Hang)
 		{
@@ -433,54 +451,6 @@ void InitiateThrow()
 
 		}
 	#endregion
-
-
-
-	#region Walk State
-	if (mState == PlayerState.Walk)
-	{
-
-	}
-	#endregion
-	#region Throw State
-	else if (mState == PlayerState.Throw)
-	{
-	#region Camera Controls
-		mCameraDirection = Camera.main.transform.rotation;
-		mFreeLook.m_Follow = mCameraPositionThrow.transform;
-		mFreeLook.m_LookAt = mCameraPositionThrow.transform;
-		
-	#endregion
-
-	#region Movement
-		// Calculating movement vector
-		mMovementVector = new Vector3(mInputLStick.x, 0f, mInputLStick.y);
-		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed;
-
-		// Applying movement
-		transform.forward = Vector3.ProjectOnPlane(mCameraDirection.eulerAngles.normalized, Vector3.up);
-	#endregion
-	}
-	#endregion
-	#region Roll
-	if (mState == PlayerState.Roll)
-	{
-	#region Camera Controls
-		// Camera distance (for testing only)
-		
-	#endregion
-
-	#region Movement
-		// Applying movement
-		mCameraDirection = Camera.main.transform.rotation;
-		transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSlerpParameter);
-		mMovementVector += new Vector3(0f, /*mVerticalMovement*/ 0f, 0f);
-		mCharacterController.Move(mMovementVector * Time.deltaTime);
-	#endregion
-	}
-	#endregion
-		
-		
 
 		// Debugging
 		VisualDebug();
