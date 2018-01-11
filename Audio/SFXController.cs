@@ -16,7 +16,7 @@ public class SFXController : MonoBehaviour {
     /// This is where you will put in Secondary Audio Clips that will be played from this unit's actions.
     /// </summary>
     [SerializeField]
-    protected AudioClip[] mSecondaryAudioClips = {null, null, null, null, null, null, null, null, null, null, null };
+    protected AudioClip[] mSecondaryAudioClips = new AudioClip[10];
 
     /// <summary>
     /// Saves the current volume, especially important while muted so you know what volume to put back on when unmuted.

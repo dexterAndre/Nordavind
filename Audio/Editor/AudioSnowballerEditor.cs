@@ -110,7 +110,6 @@ public class AudioSnowballerEditor : Editor
         EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Voice mumbling(during attack):"));
 
 
-
         GUILayout.Space(20);
 
 
