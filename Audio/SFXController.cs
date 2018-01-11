@@ -4,74 +4,19 @@ using UnityEngine;
 
 public class SFXController : MonoBehaviour {
 
-    #region Global indices
-
-    [SerializeField]
-    protected int SnowStepIndex = 0;
-    [SerializeField]
-    protected int GravelStepIndex = 1;
-    [SerializeField]
-    protected int IceStepIndex = 2;
-    [SerializeField]
-    protected int WoodStepIndex = 3;
-
-    #endregion
-
     #region Audio
     /// <summary>
     /// This is where you will put in Primary Audio Clips that will be played from this unit's actions.
     /// </summary>
     [Header("Audio files")]
     [SerializeField]
-    protected AudioClip[] mPrimaryAudioClips = {
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-    };
+    protected AudioClip[] mPrimaryAudioClips = new AudioClip[20];
 
     /// <summary>
     /// This is where you will put in Secondary Audio Clips that will be played from this unit's actions.
     /// </summary>
     [SerializeField]
-    protected AudioClip[] mSecondaryAudioClips = {
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-    };
+    protected AudioClip[] mSecondaryAudioClips = new AudioClip[20];
 
     /// <summary>
     /// Saves the current volume, especially important while muted so you know what volume to put back on when unmuted.
@@ -115,17 +60,17 @@ public class SFXController : MonoBehaviour {
         {
             //Recreate to read the texture under your feet instead of using tags.
             if (footHit.collider.tag == "Snow")
-                return mPrimaryAudioClips[SnowStepIndex];
+                return mPrimaryAudioClips[0];
             else if (footHit.collider.tag == "Gravel")
-                return mPrimaryAudioClips[GravelStepIndex];
+                return mPrimaryAudioClips[1];
             else if (footHit.collider.tag == "Ice")
-                return mPrimaryAudioClips[IceStepIndex];
+                return mPrimaryAudioClips[2];
             else if (footHit.collider.tag == "Wood")
-                return mPrimaryAudioClips[WoodStepIndex];
+                return mPrimaryAudioClips[3];
             else
             {
                 print("No footstep mapped to this tag. ###Snow used instead###");
-                return mPrimaryAudioClips[SnowStepIndex];
+                return mPrimaryAudioClips[0];
             }
                 
         }

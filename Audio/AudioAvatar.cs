@@ -8,47 +8,47 @@ public class AudioAvatar : SFXController {
 
     public void Audio_WalkingInDeepSnow()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[15], 0.5f);
     }
 
     public void Audio_Roll()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[4], 0.5f);
     }
 
     public void Audio_Jump()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[5], 0.5f);
     }
 
     public void Audio_Grab()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[6], 0.5f);
     }
 
     public void Audio_LedgeMovement()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[7], 0.5f);
     }
 
     public void Audio_HitGround()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[9], 0.5f);
     }
 
     public void Audio_Climb()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[8], 0.5f);
     }
 
     public void Audio_FallFromHeightDeath()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[10], 0.5f);
     }
 
     public void Audio_DyingFromCombat()
     {
-        //mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[], 0.5f);
+        mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[11], 0.5f);
     }
 
     //This needs a lot of work, fix footsteps first and reuse the code to make this work better.
@@ -59,13 +59,15 @@ public class AudioAvatar : SFXController {
         {
             //Recreate to read the texture under your feet instead of using tags.
             if (footHit.collider.tag == "Snow")
-                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[12]);
+            else if (footHit.collider.tag == "Ice")
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[13]);
             else if (footHit.collider.tag == "Gravel")
-                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[14]);
             else
             {
                 print("No material texture map detected. ###Snow used instead###");
-                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[0]);
+                mPrimaryAudioSource.PlayOneShot(mPrimaryAudioClips[12]);
             }
 
         }
@@ -79,22 +81,22 @@ public class AudioAvatar : SFXController {
 
     public void Audio_ThrowingSnowball()
     {
-        //mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[], 0.5f);
+        mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[0], 0.5f);
     }
 
     public void Audio_Shielding()
     {
-        //mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[], 0.5f);
+        mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[1], 0.5f);
     }
 
     public void Audio_GetHit()
     {
-        //mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[], 0.5f);
+        mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[2], 0.5f);
     }
 
     public void Audio_VelocityIncrease() //used by falling down from heights and bumslider.
     {
-        //mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[], 0.5f);
+        mSecondaryAudioSource.PlayOneShot(mSecondaryAudioClips[3], 0.5f);
     }
 
 
@@ -117,17 +119,17 @@ public class AudioAvatar : SFXController {
 
     private void Audio_CoverallsRubbing()
     {
-        //mThirdAudioSource.PlayOneShot(mThirdAudioClips[], 0.5f);
+        mThirdAudioSource.PlayOneShot(mThirdAudioClips[0], 0.5f);
     }
 
     public void Audio_LongIdleEvent()
     {
-        //mThirdAudioSource.PlayOneShot(mThirdAudioClips[], 0.5f);
+        mThirdAudioSource.PlayOneShot(mThirdAudioClips[1], 0.5f);
     }
 
     public void Audio_LowHealthBreathing()
     {
-        //mThirdAudioSource.PlayOneShot(mThirdAudioClips[], 0.5f);
+        mThirdAudioSource.PlayOneShot(mThirdAudioClips[2], 0.5f);
     }
 
 

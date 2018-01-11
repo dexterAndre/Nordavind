@@ -6,22 +6,11 @@ public class AudioAvatarEditor : Editor {
 
     public SerializedProperty mPrimaryAudioClips_P, mSecondaryAudioClips_P, mThirdAudioClips_P;
 
-
-    private int mPrimaryAudioSize = 16;
-    private int mSecondaryAudioSize = 4;
-    private int mThirdAudioSize = 3;
-
-    bool SetArrays = false;
-
     private void OnEnable()
     {
         mPrimaryAudioClips_P = serializedObject.FindProperty("mPrimaryAudioClips");
         mSecondaryAudioClips_P = serializedObject.FindProperty("mSecondaryAudioClips");
         mThirdAudioClips_P = serializedObject.FindProperty("mThirdAudioClips");
-
-
-
-
 
     }
 
