@@ -42,7 +42,7 @@ public class SFXController : MonoBehaviour {
     /// <param name="volume"></param>
     protected void SetUnitsMasterVolume(float volume)
     {
-        mAudioSource.volume = volume;
+        mPrimaryAudioSource.volume = volume;
         mCurrentVolume = volume;
     }
 
@@ -51,8 +51,8 @@ public class SFXController : MonoBehaviour {
     /// </summary>
     protected void MuteThisUnit()
     {
-        mCurrentVolume = mAudioSource.volume;
-        mAudioSource.volume = 0f;
+        mCurrentVolume = mPrimaryAudioSource.volume;
+        mPrimaryAudioSource.volume = 0f;
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public class SFXController : MonoBehaviour {
     /// </summary>
     protected void UnmuteThisUnit()
     {
-        mAudioSource.volume = mCurrentVolume;
+        mPrimaryAudioSource.volume = mCurrentVolume;
     }
     #endregion
 
@@ -81,7 +81,11 @@ public class SFXController : MonoBehaviour {
             else if (footHit.collider.tag == "Wood")
                 return mAudioClips[WoodStepIndex];
             else
-                print("No footstep mapped to this tag.");
+            {
+                print("No footstep mapped to this tag. ###Snow used instead###");
+                return mAudioClips[SnowStepIndex];
+            }
+                
         }
 
         return null;
@@ -95,7 +99,7 @@ public class SFXController : MonoBehaviour {
         AudioClip tempClip = Audio_ReturnCorrectAudioClipForStep();
 
         if (tempClip != null)
-            mAudioSource.PlayOneShot(tempClip, 0.5f);
+            mPrimaryAudioSource.PlayOneShot(tempClip, 0.5f);
         else
             print("No footstep mapped to this Texture.");
     }
@@ -107,7 +111,7 @@ public class SFXController : MonoBehaviour {
     /// <summary>
     /// The audio source that every unit uses to send out the main SFXs.
     /// </summary>
-    protected AudioSource mAudioSource = null;
+    protected AudioSource mPrimaryAudioSource = null;
 
     /// <summary>
     /// The audio source that every unit uses to send out the secondary SFXs.
@@ -120,7 +124,7 @@ public class SFXController : MonoBehaviour {
     protected void GetSFXComponents()
     {
         if (GetComponent<AudioSource>() != null)
-            mAudioSource = GetComponent<AudioSource>();
+            mPrimaryAudioSource = GetComponent<AudioSource>();
         else
             print("This unit has no audio source avaible. ###consider adding one or removing audio scripts###");
 
