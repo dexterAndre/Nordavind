@@ -1,8 +1,8 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(AudioSnowballer))]
-public class AudioSnowballerEditor : Editor
+[CustomEditor(typeof(AudioSnowballerMother))]
+public class AudioSnowballerMotherEditor : Editor
 {
 
     public SerializedProperty mPrimaryAudioClips_P, mSecondaryAudioClips_P;
@@ -16,7 +16,7 @@ public class AudioSnowballerEditor : Editor
 
     public override void OnInspectorGUI()
     {
-         //base.OnInspectorGUI();
+        //base.OnInspectorGUI();
 
         serializedObject.Update();
 
@@ -49,34 +49,25 @@ public class AudioSnowballerEditor : Editor
 
 
         SerializedProperty PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(0);
-        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Footstep (Snow):"));
+        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Spawning sound:"));
 
         GUILayout.Space(20);
 
         PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(1);
-        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Footstep (Gravel):"));
+        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Take damage:"));
 
         GUILayout.Space(20);
 
         PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(2);
-        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Footstep (Ice):"));
-
-        GUILayout.Space(20);
-
-        PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(3);
-        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Footstep (Wood):"));
-
-        GUILayout.Space(20);
-
-        PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(4);
         EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Roar:"));
 
         GUILayout.Space(20);
 
-        PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(5);
-        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Attack:"));
+        PrimaryAudio = mPrimaryAudioClips_P.GetArrayElementAtIndex(3);
+        EditorGUILayout.PropertyField(PrimaryAudio, new GUIContent("Laughter:"));
 
         GUILayout.Space(20);
+
 
         EditorGUILayout.EndVertical();
     }
@@ -87,27 +78,10 @@ public class AudioSnowballerEditor : Editor
         GUILayout.Space(20);
 
         SerializedProperty SecondaryAudio = mSecondaryAudioClips_P.GetArrayElementAtIndex(0);
-        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Voice mumbling(1):"));
+        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Crystal Sound:"));
 
         GUILayout.Space(20);
 
-        SecondaryAudio = mSecondaryAudioClips_P.GetArrayElementAtIndex(1);
-        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Voice mumbling(2):"));
-
-        GUILayout.Space(20);
-
-        SecondaryAudio = mSecondaryAudioClips_P.GetArrayElementAtIndex(2);
-        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Voice mumbling(3):"));
-
-        GUILayout.Space(20);
-
-        SecondaryAudio = mSecondaryAudioClips_P.GetArrayElementAtIndex(3);
-        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Charge:"));
-
-        GUILayout.Space(20);
-
-        SecondaryAudio = mSecondaryAudioClips_P.GetArrayElementAtIndex(4);
-        EditorGUILayout.PropertyField(SecondaryAudio, new GUIContent("Voice mumbling(during attack):"));
 
 
         GUILayout.Space(20);
