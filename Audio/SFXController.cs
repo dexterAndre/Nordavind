@@ -4,13 +4,32 @@ using UnityEngine;
 
 public class SFXController : MonoBehaviour {
 
+    #region Global indices
+
+    [SerializeField]
+    protected int SnowStepIndex = 0;
+    [SerializeField]
+    protected int GravelStepIndex = 1;
+    [SerializeField]
+    protected int IceStepIndex = 2;
+    [SerializeField]
+    protected int WoodStepIndex = 3;
+
+    #endregion
+
     #region Audio
     /// <summary>
-    /// This is where you will put in Audio Clips that will be played from this unit's actions.
+    /// This is where you will put in Primary Audio Clips that will be played from this unit's actions.
     /// </summary>
     [Header("Audio files")]
     [SerializeField]
     protected AudioClip[] mAudioClips;
+
+    /// <summary>
+    /// This is where you will put in Secondary Audio Clips that will be played from this unit's actions.
+    /// </summary>
+    [SerializeField]
+    protected AudioClip[] mSecondaryAudioClips;
 
     /// <summary>
     /// Saves the current volume, especially important while muted so you know what volume to put back on when unmuted.
@@ -54,13 +73,13 @@ public class SFXController : MonoBehaviour {
         {
             //Recreate to read the texture under your feet instead of using tags.
             if (footHit.collider.tag == "Snow")
-                return mAudioClips[0];
+                return mAudioClips[SnowStepIndex];
             else if (footHit.collider.tag == "Gravel")
-                return mAudioClips[1];
+                return mAudioClips[GravelStepIndex];
             else if (footHit.collider.tag == "Ice")
-                return mAudioClips[2];
+                return mAudioClips[IceStepIndex];
             else if (footHit.collider.tag == "Wood")
-                return mAudioClips[3];
+                return mAudioClips[WoodStepIndex];
             else
                 print("No footstep mapped to this tag.");
         }
@@ -93,18 +112,21 @@ public class SFXController : MonoBehaviour {
     /// <summary>
     /// The audio source that every unit uses to send out the secondary SFXs.
     /// </summary>
-    protected AudioSource mBonusAudioSource = null;
+    protected AudioSource mSecondaryAudioSource = null;
 
+    /// <summary>
+    /// This function is used to set the SFX components in the each individual script.
+    /// </summary>
     protected void GetSFXComponents()
     {
         if (GetComponent<AudioSource>() != null)
             mAudioSource = GetComponent<AudioSource>();
-        else if (this.transform.parent.GetComponent<AudioSource>() != null)
-            mAudioSource = this.transform.parent.GetComponent<AudioSource>();
         else
             print("This unit has no audio source avaible. ###consider adding one or removing audio scripts###");
 
-        if(this.transform.GetChild(0).GetComponent)
+        if (this.transform.GetChild(0).GetComponent<AudioSource>() != null)
+            mSecondaryAudioSource = this.transform.GetChild(0).GetComponent<AudioSource>();
+
     }
 
     #endregion

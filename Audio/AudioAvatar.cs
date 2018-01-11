@@ -4,8 +4,13 @@ using UnityEngine;
 
 public class AudioAvatar : SFXController {
 
-    #region Footsteps
 
+    #region Update Functions
 
-#endregion
+    private void Start()
+    {
+        GetSFXComponents();
+    }
+
+    #endregion
 }
