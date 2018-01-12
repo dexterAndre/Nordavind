@@ -10,13 +10,18 @@ public class PlayerController : MonoBehaviour
 	#########################
 	- Mouse and keyboard support
 	- Auto-detect when changing from gamepad to mouse and keyboard
-	- Get rid of mIsGrounded
 	- Fix camera jitter when rolling
 	- Roll and crash
 	- Camera controls only if elgible (e.g. not while throwing)
 	- Limit movement over edges to not fall down (especially if throwing)
 	- Camera: needs to have a better look upwards when close to avatar
 	- Dynamic input stick inversion
+	- Free throw
+	- Actually throwing
+	- Aim reticle
+	- Walk while throwing
+	- Roll now not working
+	- Allow for right stick Y to adjust camera distance?
 */
 
 #region Input
@@ -104,12 +109,20 @@ public class PlayerController : MonoBehaviour
 #endregion
 #region Throw
 [SerializeField]
-private float mThrowVerticalAngleMinimum = -90f;
+private GameObject mThrowProjectile = null;
 [SerializeField]
-private float mThrowVerticalAngleMaximum = 90f;
+private Transform mProjectileParent = null;
+[SerializeField]
+private Transform mThrowPositionStart;
+[SerializeField]
+private float mThrowForce;
+[SerializeField]
+private float mThrowAimingVerticalAngleMinimum = -90f;
+[SerializeField]
+private float mThrowAimingVerticalAngleMaximum = 90f;
 private float mVerticalAngle = 0f;
-private Vector3 mCameraThrowLookAtOriginalDisplacement;
-private float mCameraThrowLookAtRadius;
+private Vector3 mCameraThrowAimOriginalDisplacement;
+private float mCameraThrowAimRadius;
 void InitiateThrow()
 {
 	mState = PlayerState.Throw;
@@ -178,11 +191,13 @@ void InitiateThrow()
 #region Animation
 #endregion
 #region Debug
-	// [Header("Debug")]
-	// [SerializeField]
-	// private bool mIsDebugging = true;
-	// [SerializeField]
-	// private Vector3 mDebugOffset = new Vector3(0f, 2f, 0f);
+	[Header("Debug")]
+	[SerializeField]
+	private bool mIsDebugging = true;
+	[SerializeField]
+	private Vector3 mDebugOffset = new Vector3(0f, 2f, 0f);
+	[SerializeField]
+	private bool mDebugCamera;
 	// private Vector3 mDebugHangPoint;
 	// [SerializeField]
 	// private Color mDebugColorHangTop, mDebugColorHangPoint, mDebugColorHandPlanar, mDebugColorHangDirection;
@@ -193,7 +208,10 @@ void InitiateThrow()
 	/// <param name="other"></param>
 	private void VisualDebug()
 	{
-
+		if (mDebugCamera)
+		{
+			Debug.DrawLine(mCameraThrowShoulder.transform.position, mCameraThrowLookAt.transform.position, Color.red);
+		}
 	}
 #endregion
 
@@ -205,9 +223,9 @@ void InitiateThrow()
 		mRollTimer = 0f;
 
 		// Storing the displacement vector from Shoulder to ShoulderLookAt GameObjects in scene. 
-		mCameraThrowLookAtOriginalDisplacement = mCameraThrowLookAt.transform.position - mCameraThrowShoulder.transform.position;
+		mCameraThrowAimOriginalDisplacement = mCameraThrowLookAt.transform.position - mCameraThrowShoulder.transform.position;
 		// Storing radius of original displacement from Shoulder to ShoulderLookAt
-		mCameraThrowLookAtRadius = mCameraThrowLookAtOriginalDisplacement.magnitude;
+		mCameraThrowAimRadius = mCameraThrowAimOriginalDisplacement.magnitude;
 
 		// Default mode of locomotion
 		InitiateWalk();
@@ -452,16 +470,22 @@ void InitiateThrow()
 			{
 				// Controlling the angle and clamping between [-90, 90]
 				mVerticalAngle += mInputRStick.y * mInputRStickSensitivity;
-				if (mVerticalAngle < mThrowVerticalAngleMinimum)
-					mVerticalAngle = mThrowVerticalAngleMinimum;
-				else if (mVerticalAngle > mThrowVerticalAngleMaximum)
-					mVerticalAngle = mThrowVerticalAngleMaximum;
+				if (mVerticalAngle < mThrowAimingVerticalAngleMinimum)
+					mVerticalAngle = mThrowAimingVerticalAngleMinimum;
+				else if (mVerticalAngle > mThrowAimingVerticalAngleMaximum)
+					mVerticalAngle = mThrowAimingVerticalAngleMaximum;
 
 				// Applying rotation
 				mCameraThrowLookAt.transform.position 
 					= mCameraThrowShoulder.transform.position 
-					+ transform.forward * Mathf.Cos(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowLookAtRadius
-					+ Vector3.up * Mathf.Sin(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowLookAtRadius * (-1f);
+					+ transform.forward * Mathf.Cos(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowAimRadius
+					+ Vector3.up * Mathf.Sin(mVerticalAngle * Mathf.Deg2Rad) * mCameraThrowAimRadius * (-1f);
+			}
+			// Triggering the throw
+			if (Input.GetButtonDown("Fire3"))
+			{
+				GameObject snowballThrown = (GameObject)Instantiate(mThrowProjectile, mThrowPositionStart.position, Quaternion.identity, mProjectileParent);
+				snowballThrown.GetComponent<Rigidbody>().velocity = (mCameraThrowLookAt.transform.position - mCameraThrowShoulder.transform.position).normalized * mThrowForce;
 			}
 		}
 		else if (mState == PlayerState.Hang)
