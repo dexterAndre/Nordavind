@@ -17,6 +17,9 @@ public class PlayerController : MonoBehaviour
 	- Limit movement over edges to not fall down (especially if throwing)
 	- Camera: needs to have a better look upwards when close to avatar
 	- Dynamic input stick inversion
+	- Free throw
+	- Actually throwing
+	- Aim reticle
 */
 
 #region Input
