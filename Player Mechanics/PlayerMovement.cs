@@ -74,6 +74,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Debug")]
     [SerializeField]
     private bool mIsDebugging = true;
+    public bool GetIsDebugging() { return mIsDebugging; }
 	[SerializeField]
 	private Vector3 mDebugOffset;
 	[SerializeField]
@@ -191,6 +192,14 @@ public class PlayerMovement : MonoBehaviour
 		mStateMachine.SetState(PlayerStateMachine.PlayerState.Walk);
 		mVerticalMovement = 0f;
 	}
+
+    public IEnumerator InitiateJump()
+    {
+        // Apply wait time
+        WaitForSeconds wait = new WaitForSeconds(mJumpChargeDuration);
+        yield return wait;
+
+    }
 
 	public void InitiateHang()
 	{
