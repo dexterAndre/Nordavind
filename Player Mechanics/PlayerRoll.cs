@@ -46,16 +46,13 @@ public class PlayerRoll : MonoBehaviour
 		}
 
 		// Roll timer
-		if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Roll)
+		if (mRollTimer > 0f)
 		{
-			if (mRollTimer > 0f)
+			mRollTimer += Time.fixedDeltaTime;
+			if (mRollTimer >= mRollDuration)
 			{
-				mRollTimer += Time.fixedDeltaTime;
-				if (mRollTimer >= mRollDuration)
-				{
-					mRollTimer = 0f;
-					mStateMachine.SetState(PlayerStateMachine.PlayerState.Walk);
-				}
+				mRollTimer = 0f;
+				mStateMachine.SetState(PlayerStateMachine.PlayerState.Walk);
 			}
 		}
 	}

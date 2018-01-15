@@ -19,6 +19,7 @@ public class PlayerMovement : MonoBehaviour
 	[SerializeField]
 	[Range(0f, 1f)]
 	private float mRotationSpeed = 0.3f;
+    private Vector3 mRollVector;
 
 	[Header("Gravity")]
 	[SerializeField]
@@ -151,6 +152,8 @@ public class PlayerMovement : MonoBehaviour
 		// Roll
 		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Roll)
 		{
+            mMovementVector = mRollVector + new Vector3(0f, -9.81f, 0f);
+
 			// Applying movement
 			mCharacterController.Move(mMovementVector * Time.deltaTime);
 		}
@@ -231,6 +234,8 @@ public class PlayerMovement : MonoBehaviour
 		mCameraDirection = Camera.main.transform.rotation;
 		mMovementVector = new Vector3(mStateMachine.GetInputStickL().x, 0f, mStateMachine.GetInputStickL().y);
 		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mRoll.GetRollSpeed();
+
+        mRollVector = mMovementVector;
 
 		// Setting rotation
 		transform.forward = mMovementVector.normalized;

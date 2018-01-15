@@ -37,6 +37,7 @@ public class PlayerCameraController : MonoBehaviour
 
 	private void Start ()
 	{
+        mCameraFreeLook = GameObject.FindGameObjectWithTag("ThirdPersonCamera").GetComponent<CinemachineFreeLook>();
 		mStateMachine = GetComponent<PlayerStateMachine>();
 		mCameraThrowInitialRadius = (mCameraThrowLookAt.position - mCameraThrowPosition.position).magnitude;
 	}
