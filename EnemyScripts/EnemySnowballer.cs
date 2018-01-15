@@ -8,7 +8,7 @@ public class EnemySnowballer : EnemyController {
 
     #region Spawned during mother encounter
 
-    public void GetSpawnedAndPushed(Vector3 motherFowardAxis, float forceOfPush)
+    public void GetDestionationAfterSpawn(Vector3 motherFowardAxis, float forceOfPush)
     {
         Nav_StopNavMesh();
         mRigidBody.AddForce(motherFowardAxis * forceOfPush *Time.deltaTime, ForceMode.Impulse);
@@ -220,6 +220,17 @@ public class EnemySnowballer : EnemyController {
             ChargeAtTarget();
         }
 	}
+    #endregion
+
+    #region Gizmos
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, mDetectionRange);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, mAttackRange);
+    }
     #endregion
 
 }
