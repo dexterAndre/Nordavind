@@ -138,17 +138,13 @@ public class PlayerStateMachine : MonoBehaviour
 			{
 				mPlayerMovement.InitiateRoll();
 			}
-		}
-		// Walk
-		else if (mState == PlayerState.Walk )
-		{
-			// Throw
-			if (GetInputTriggers().x != 0f)
-			{
-				mState = PlayerState.Throw;
-				mPlayerCameraController.InitiateThrowCamera();
-			}
-		}
+            // Throw
+            if (GetInputTriggers().x != 0f)
+            {
+                mState = PlayerState.Throw;
+                mPlayerCameraController.InitiateThrowCamera();
+            }
+        }
 		// Throw
 		else if (mState == PlayerState.Throw)
 		{
