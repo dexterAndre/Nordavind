@@ -161,7 +161,10 @@ public class PlayerMovement : MonoBehaviour
 		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Hang)
 		{
 			transform.position = mHangPointActually;
-			transform.rotation = Quaternion.LookRotation(mHangDirection);
+            if (mHangDirection == Vector3.zero)
+                transform.rotation = Quaternion.LookRotation(Vector3.forward);
+            else
+			    transform.rotation = Quaternion.LookRotation(mHangDirection);
 		}
 		// Slide
 		// Balance
@@ -182,7 +185,7 @@ public class PlayerMovement : MonoBehaviour
 		mVerticalMovement = 0f;
 
 		// Low raycast to obtain wall normal
-		Physics.Raycast(transform.position + mHangLimitLow, transform.forward, out mHangRaycastLow, mHangMagnitude);
+		Physics.Raycast(transform.position + mHangLimitLow, transform.forward, out mHangRaycastLow, mHangMagnitude * 2f);
 
 		/*
 		T: top hit point
