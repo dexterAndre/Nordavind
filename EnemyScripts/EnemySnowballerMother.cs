@@ -18,6 +18,7 @@ public class EnemySnowballerMother : Actor {
     /// </summary>
     private Transform[] mSpawnPoints = new Transform[3];
 
+    private int amountSpawnedByMother = 0;
 
 
     /// <summary>
@@ -37,9 +38,11 @@ public class EnemySnowballerMother : Actor {
     /// <returns></returns>
     private IEnumerator SpawnSnowballer()
     {
-        GameObject Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[0].position, Quaternion.identity, null);
-        Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[1].position, Quaternion.identity, null);
-        Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[2].position, Quaternion.identity, null);
+        GameObject snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[0].position, Quaternion.identity, null);
+        snowballer.name = "Snowballer " + amountSpawnedByMother;
+        amountSpawnedByMother++;
+        snowballer.GetComponent<EnemySnowballer>().GetDestionationAfterSpawn(mHeadTransform.forward);
+
         haveSpawnedNewSnowballer = true;
         yield return new WaitForSeconds(spawnCooldown);
         haveSpawnedNewSnowballer = false;
@@ -51,7 +54,7 @@ public class EnemySnowballerMother : Actor {
 
     #region FrostBeam
 
-    private Transform mHeadTransformForward = null;
+    private Transform mHeadTransform = null;
 
     public void StopBeam()
     {
@@ -72,7 +75,8 @@ public class EnemySnowballerMother : Actor {
     {
         Health_SetStandardHealth(mStartingHealth);
         GetActorComponents();
-        mHeadTransformForward = transform.GetChild(0).GetComponent<Transform>();
+
+        mHeadTransform = transform.GetChild(0).GetComponent<Transform>();
 
         for (int i = 0; i < 3; i++)
         {

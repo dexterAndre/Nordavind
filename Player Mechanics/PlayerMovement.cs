@@ -287,4 +287,14 @@ public class PlayerMovement : MonoBehaviour
 				transform.position + mDebugOffset + mHangDirection);
 		}
 	}
+
+    public float GetMovementSpeed()
+    {
+        return new Vector3(mMovementVector.x, 0f, mMovementVector.z).magnitude / mWalkSpeed;
+    }
+
+    public PlayerStateMachine.PlayerState GetPlayerState()
+    {
+        return mStateMachine.GetState();
+    }
 }

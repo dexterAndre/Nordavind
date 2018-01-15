@@ -8,10 +8,9 @@ public class EnemySnowballer : EnemyController {
 
     #region Spawned during mother encounter
 
-    public void GetDestionationAfterSpawn(Vector3 motherFowardAxis, float forceOfPush)
+    public void GetDestionationAfterSpawn(Vector3 motherFowardAxis)
     {
-        Nav_StopNavMesh();
-        mRigidBody.AddForce(motherFowardAxis * forceOfPush *Time.deltaTime, ForceMode.Impulse);
+        Nav_SetNavMeshDestinationToCertainPosition(motherFowardAxis * Random.Range(5f, 10f));
     }
 
     #endregion
@@ -162,6 +161,7 @@ public class EnemySnowballer : EnemyController {
     {
         charged = false;
         mRigidBody.velocity = new Vector3(0f, mRigidBody.velocity.y, 0f);
+        mRigidBody.AddForce(Vector3.up * 250f * Time.deltaTime, ForceMode.Impulse);
         selfDestructionInitialized = true;
         yield return new WaitForSeconds(selfDestructionAnimationDuration);
         Explode();
@@ -177,18 +177,24 @@ public class EnemySnowballer : EnemyController {
     {
         print(this.gameObject.name + " just exploded");
         //spawn deathParticle here.
-        this.gameObject.SetActive(false);
+        //this.gameObject.SetActive(false);
+        Destroy(this.gameObject);
     }
         
 #endregion
 
     #region UpdateFunctions
-    void Start ()
+    void Awake ()
     {
         SetComponentsAtStart();
 	}
-	
-	void Update ()
+
+    void Start()
+    {
+        SetComponentsAtStart();
+    }
+
+    void Update ()
     {
         if (!recentlySearchedForHostiles && mCurrentStance == TypeOfStances.Idle)
         {
