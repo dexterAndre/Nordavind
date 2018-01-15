@@ -14,11 +14,10 @@ public class EnemySnowballerMother : Actor {
     private GameObject SnowballerPrefab = null;
 
     /// <summary>
-    /// This is the force that the snowballer will be using to get pushed out of the mothers mouth.
-    /// <para>  This should be written as a high number, due to it being multiplied by Time.deltaTime.</para>
+    /// The spawnPoints used to set the new snowballers out during the encounter.
     /// </summary>
-    [SerializeField]
-    private Vector2 forceOfSpawningSnowballer = new Vector3(500000f, 2000f);
+    private Transform[] mSpawnPoints = new Transform[3];
+
 
 
     /// <summary>
@@ -38,13 +37,31 @@ public class EnemySnowballerMother : Actor {
     /// <returns></returns>
     private IEnumerator SpawnSnowballer()
     {
-        GameObject Snowballer = Instantiate(SnowballerPrefab, transform.position, Quaternion.identity, null);
-        Snowballer.GetComponent<EnemySnowballer>().GetSpawnedAndPushed(transform.forward + (Vector3.up * forceOfSpawningSnowballer.y), forceOfSpawningSnowballer.x);
+        GameObject Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[0].position, Quaternion.identity, null);
+        Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[1].position, Quaternion.identity, null);
+        Snowballer = Instantiate(SnowballerPrefab, mSpawnPoints[2].position, Quaternion.identity, null);
         haveSpawnedNewSnowballer = true;
         yield return new WaitForSeconds(spawnCooldown);
         haveSpawnedNewSnowballer = false;
     }
 
+
+
+    #endregion
+
+    #region FrostBeam
+
+    private Transform mHeadTransformForward = null;
+
+    public void StopBeam()
+    {
+
+    }
+
+    private void StartBeam()
+    {
+
+    }
 
 
 #endregion
@@ -55,11 +72,18 @@ public class EnemySnowballerMother : Actor {
     {
         Health_SetStandardHealth(mStartingHealth);
         GetActorComponents();
+        mHeadTransformForward = transform.GetChild(0).GetComponent<Transform>();
+
+        for (int i = 0; i < 3; i++)
+        {
+            mSpawnPoints[i] = transform.GetChild(1).transform.GetChild(i).GetComponent<Transform>();
+        }
 	}
 	
 	private void Update ()
     {
-		
+        if (!haveSpawnedNewSnowballer)
+            StartCoroutine(SpawnSnowballer());
 	}
 #endregion
 }
