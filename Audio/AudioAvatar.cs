@@ -141,8 +141,9 @@ public class AudioAvatar : SFXController {
     {
         GetSFXComponents();
 
-        if(transform.GetChild(0).transform.GetChild(0).GetComponent<AudioSource>() != null)
-            mThirdAudioSource = transform.GetChild(0).transform.GetChild(0).GetComponent<AudioSource>();
+        //Gets the third child of the Audio-child.
+        if(transform.parent.GetChild(3).transform.GetChild(2).GetComponent<AudioSource>() != null)
+            mThirdAudioSource = transform.parent.GetChild(3).transform.GetChild(2).GetComponent<AudioSource>();
     }
 
     #endregion

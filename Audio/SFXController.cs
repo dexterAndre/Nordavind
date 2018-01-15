@@ -110,13 +110,15 @@ public class SFXController : MonoBehaviour {
     /// </summary>
     protected void GetSFXComponents()
     {
-        if (GetComponent<AudioSource>() != null)
-            mPrimaryAudioSource = GetComponent<AudioSource>();
+        //Checks for child number one in child 2 (audio-child).
+        if (this.transform.parent.GetChild(1).transform.GetChild(0).GetComponent<AudioSource>() != null)
+            mPrimaryAudioSource = transform.parent.GetChild(1).transform.GetChild(0).GetComponent<AudioSource>();
         else
             print("This unit has no audio source avaible. ###consider adding one or removing audio scripts###");
 
-        if (this.transform.GetChild(0).GetComponent<AudioSource>() != null)
-            mSecondaryAudioSource = this.transform.GetChild(0).GetComponent<AudioSource>();
+        //Checks for child number two in child 2 (audio-child).
+        if (this.transform.parent.GetChild(1).transform.GetChild(1).GetComponent<AudioSource>() != null)
+            mPrimaryAudioSource = transform.parent.GetChild(1).transform.GetChild(1).GetComponent<AudioSource>();
 
     }
 
