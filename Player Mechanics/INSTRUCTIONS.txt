@@ -1,0 +1,29 @@
+################
+## INSTRUCTIONS: ##
+################
+_______
+Controls: 
+- Return (enter) to reset
+- Left stick to move around
+- Right stick to control camera
+- Y to jump
+- X to roll
+- Left Trigger to enter throw mode
+--- Right Trigger to throw
+--- Right stick to control camera
+____________
+Customization: 
+
+### Player State Machine: 
+- Input multipliers are global multipliers, and should only be changed if the entire team is aware of it. Will probably remove these. Use the appropriate sensitivity settings under "Input Sensitivity". 
+- Use the "Input Sensitivity" values to tweak the different sensitivity settings. These should be context sensitive, and should only work for the given context, i.e. the "Input Throw Sensitivity X" should only work when throwing, affecting the horizontal axis only. 
+
+### Camera Script Settings: 
+- Move the "Player Third Person Focus" GameObject to change the focus of the camera. 
+- Move the "Player Throw Position" GameObject to change where the "shoulder" of the avatar is, i.e. where the camera is positioned when in throw mode. 
+- Please leave the "Player Throw Focus" GameObject (which is the child of "Player Throw Position") where it initially is, unless you need to change the initial distance away from "Player Throw Position". 
+
+### Camera Rig Settings: 
+- The GameObject is named "Third Person Camera Rig". Located as a child of "Cameras". 
+- The "Top Rig" is used for the throw mode. Don't touch it unless you have talked to André. 
+- The "Middle Rig" and "Bottom Rig" are controlled by the right stick's vertical axis. You can alter their heights and radii, but please inform André if you do. 
