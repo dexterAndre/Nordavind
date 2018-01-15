@@ -4,13 +4,16 @@ using System.Collections;
 [RequireComponent(typeof(PlayerStateMachine), typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-	/* 
+    /* 
 	To-do list: 
 	- Make jump lean more forward rather than up. 
 	- Stop before jumping. 
+    - Hang bug (sets to (0, 0, 0))
+    - Add roll crashing
 	*/
 
-	[Header("Walk")]
+    #region Walk
+    [Header("Walk")]
 	[SerializeField]
 	private float mWalkSpeed = 5f;
 	[HideInInspector]
@@ -20,20 +23,25 @@ public class PlayerMovement : MonoBehaviour
 	[Range(0f, 1f)]
 	private float mRotationSpeed = 0.3f;
     private Vector3 mRollVector;
-
-	[Header("Gravity")]
+    #endregion
+    #region Gravity
+    [Header("Gravity")]
 	[SerializeField]
 	private float mGravityScale = 1f;
 	private float mAirTimer = 0f;
 	public void ResetAirTimer() { mAirTimer = 0f; }
 	private float mVerticalMovement = 0f;
 	public bool mIsGrounded;
-
-	[Header("Jump")]
+    #endregion
+    #region Jump
+    [Header("Jump")]
 	[SerializeField]
 	private float mJumpStrength = 10f;
-
-	[Header("Hang")]
+    [SerializeField]
+    private float mJumpChargeDuration = 0.2f;
+    #endregion
+    #region Hang
+    [Header("Hang")]
 	[SerializeField]
 	private float mHangHeightHigh = 2f;
 	[SerializeField]
@@ -61,19 +69,25 @@ public class PlayerMovement : MonoBehaviour
 	private float mClimbAnimationDuration;
 	[SerializeField]
 	private float mHangDropSpeed = 1f;
-
-	[Header("Debug")]
+    #endregion
+    #region Debug
+    [Header("Debug")]
+    [SerializeField]
+    private bool mIsDebugging = true;
 	[SerializeField]
 	private Vector3 mDebugOffset;
 	[SerializeField]
 	private Color mDebugColor = Color.red;
-
-	// References
-	private CharacterController mCharacterController = null;
+    #endregion
+    #region References
+    private CharacterController mCharacterController = null;
 	private PlayerStateMachine mStateMachine = null;
 	private PlayerRoll mRoll = null;
+    #endregion
 
-	private void Start ()
+
+
+    private void Awake ()
 	{
 		mCharacterController = GetComponent<CharacterController>();
 		mStateMachine = GetComponent<PlayerStateMachine>();
@@ -246,49 +260,57 @@ public class PlayerMovement : MonoBehaviour
 
 	private void OnDrawGizmosSelected()
 	{
-		mHangLimitHigh = new Vector3(0f, mHangHeightHigh, 0f);
-		mHangLimitLow = new Vector3(0f, mHangHeightLow, 0f);
-		Gizmos.color = mDebugColor;
-		Gizmos.DrawLine(
-			transform.position + mHangLimitHigh,
-			transform.position + mHangLimitHigh + transform.forward * mHangMagnitude);
-		Gizmos.DrawLine(
-			transform.position + mHangLimitHigh + transform.forward * mHangMagnitude,
-			transform.position + mHangLimitHigh + transform.forward + Vector3.down * mHangDelta);
-		Gizmos.DrawLine(
-			transform.position + mHangLimitLow,
-			transform.position + mHangLimitLow + transform.forward * mHangMagnitude);
+        if (mIsDebugging)
+        {
+            #region Hang
+            mHangLimitHigh = new Vector3(0f, mHangHeightHigh, 0f);
+		    mHangLimitLow = new Vector3(0f, mHangHeightLow, 0f);
+		    Gizmos.color = mDebugColor;
+		    Gizmos.DrawLine(
+			    transform.position + mHangLimitHigh,
+			    transform.position + mHangLimitHigh + transform.forward * mHangMagnitude);
+		    Gizmos.DrawLine(
+			    transform.position + mHangLimitHigh + transform.forward * mHangMagnitude,
+			    transform.position + mHangLimitHigh + transform.forward + Vector3.down * mHangDelta);
+		    Gizmos.DrawLine(
+			    transform.position + mHangLimitLow,
+			    transform.position + mHangLimitLow + transform.forward * mHangMagnitude);
 
-		if (mHangTop != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangTop,
-				mHangTop + new Vector3(0f, 1f, 0f));
-		}
-		if (mHangPlanarTW != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangTop,
-				mHangTop + mHangPlanarTW);
-		}
-		if (mHangPoint != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangWall,
-				mHangWall - mHangDirection);
-		}
-		if (mHangPointActually != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangPointActually,
-				mHangPointActually - mHangDirection);
-		}
-		if (mHangDirection != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				transform.position + mDebugOffset,
-				transform.position + mDebugOffset + mHangDirection);
-		}
+		    if (mHangTop != Vector3.zero)
+		    {
+			    Gizmos.DrawLine(
+				    mHangTop,
+				    mHangTop + new Vector3(0f, 1f, 0f));
+		    }
+		    if (mHangPlanarTW != Vector3.zero)
+		    {
+			    Gizmos.DrawLine(
+				    mHangTop,
+				    mHangTop + mHangPlanarTW);
+		    }
+		    if (mHangPoint != Vector3.zero)
+		    {
+			    Gizmos.DrawLine(
+				    mHangWall,
+				    mHangWall - mHangDirection);
+		    }
+		    if (mHangPointActually != Vector3.zero)
+		    {
+			    Gizmos.DrawLine(
+				    mHangPointActually,
+				    mHangPointActually - mHangDirection);
+		    }
+		    if (mHangDirection != Vector3.zero)
+		    {
+			    Gizmos.DrawLine(
+				    transform.position + mDebugOffset,
+				    transform.position + mDebugOffset + mHangDirection);
+		    }
+            #endregion
+            #region Jump
+            // visualize how far the player can jump
+            #endregion
+        }
 	}
 
     public float GetMovementSpeed()
