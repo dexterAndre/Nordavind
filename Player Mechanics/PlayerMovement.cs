@@ -153,7 +153,7 @@ public class PlayerMovement : MonoBehaviour
 			// Calculating planar movement
 			mCameraDirection = Camera.main.transform.rotation;
 			mMovementVector = new Vector3(mStateMachine.GetInputStickL().x, 0f, mStateMachine.GetInputStickL().y);
-			mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mWalkSpeed;
+			mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up) * mWalkSpeed;
 
 			// Applying rotation
 			transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSpeed);

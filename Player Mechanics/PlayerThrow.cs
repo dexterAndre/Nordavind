@@ -4,10 +4,23 @@ using System.Collections;
 [RequireComponent(typeof(PlayerStateMachine), typeof(PlayerMovement), typeof(PlayerCameraController))]
 public class PlayerThrow : MonoBehaviour
 {
-	[Header("Throw Settings")]
+    /* 
+    To-do:
+    - Do not spawn from camera (aimed mode). Make a new object. 
+    - Constraints when in aimed mode. 
+    - Make a new rig entirely for the aim mode. 
+    - - Place the camera behind the sawn position. The arm will have to animate in front, but that's fine. 
+    - Lock-on system for free throwing? 
+    - Adjust projectile rigidbody from Throw script. 
+    - - Add gravityscale in Throw for the Projectile. 
+    - - - Add gravity extra vector in ProjectileBehavior
+    */
+
+    [Header("Throw Settings")]
 	[SerializeField]
 	private float mThrowStrength;
 	[SerializeField]
+    [Tooltip("Time before projectile is automatically destroyed. ")]
 	private float mThrowLifetime;
 	private Vector3 mThrowVector;
 
