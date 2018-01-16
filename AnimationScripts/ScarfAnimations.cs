@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ScarfAnimations : HeadAnimatorBehavior {
+public class ScarfAnimations : MonoBehaviour {
+
+    private Animator scarftAnimator = null;
 
     private void Start()
     {
-        GetHeadAnimtorComponents();
+        scarftAnimator = GetComponent<Animator>();
     }
 
 
@@ -14,12 +16,12 @@ public class ScarfAnimations : HeadAnimatorBehavior {
 
     public void Animation_SetMovement(float movementIn)
     {
-        mAnimator.SetFloat("MovementSpeed", movementIn);
+        scarftAnimator.SetFloat("MovementSpeed", movementIn);
     }
 
     public void Animation_SetJump()
     {
-        mAnimator.SetTrigger("Jump");
+        scarftAnimator.SetTrigger("Jump");
         //mAnimator.SetBool("IsGrounded", false);
     }
 
