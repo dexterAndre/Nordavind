@@ -8,13 +8,8 @@ public class PlayerAnimations : HeadAnimatorBehavior
     private PlayerStateMachine mPlayerStateMachine = null;
     private PlayerMovement mPlayerMovement = null;
 
-    //[SerializeField]
-    //private ScarfAnimations mScarfAnimations = null;
-
-
     private bool hasJumped = false;
 
-	// Use this for initialization
 	void Start () {
         GetHeadAnimtorComponents();
         mPlayerStateMachine = transform.parent.GetComponent<PlayerStateMachine>();
@@ -23,7 +18,7 @@ public class PlayerAnimations : HeadAnimatorBehavior
 
     private void Animation_SetMovement()
     {
-            mAnimator.SetFloat("MovementSpeed", mPlayerMovement.GetMovementSpeed());
+            mAnimator.SetFloat("Speed", mPlayerMovement.GetMovementSpeed());
     }
 
     private void Animation_SetJump()
@@ -31,18 +26,29 @@ public class PlayerAnimations : HeadAnimatorBehavior
         mAnimator.SetTrigger("Jump");
     }
 
+    private void Animation_ThrowSnowball()
+    {
+        mAnimator.SetTrigger("Throw");
+    }
+
+    private void AnimationLayer_SwitchWeightForScarf()
+    {
+        mAnimator.SetLayerWeight(1, 0);
+        mAnimator.SetLayerWeight(2, 1);
+    }
+
+
     private void Update()
     {
-        if (Input.GetButtonDown("Jump"))
-        {
-            mAnimator.SetTrigger("Jump");
-        }
-        //if (mPlayerMovement.GetPlayerState() == PlayerStateMachine.PlayerState.Walk)
-        //{
 
-        //    else
-        //        Animation_SetMovement();
-                
-        //}
+        if (mPlayerMovement.GetGroundedState())
+            Animation_SetMovement();
+
+        if (Input.GetButtonDown("Fire3"))
+        {
+            AnimationLayer_SwitchWeightForScarf();
+            Animation_ThrowSnowball();
+        }
+
     }
 }
