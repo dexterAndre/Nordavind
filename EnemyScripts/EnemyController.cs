@@ -126,6 +126,7 @@ public class EnemyController : Actor {
     ///</summary>
     protected void Nav_SetNavMeshDestinationToCertainPosition(Vector3 newTargetPosition)
     {
+        Nav_StartNavMesh();
         mNavMeshAgent.SetDestination(newTargetPosition);
         mLastPosition = newTargetPosition;
     }

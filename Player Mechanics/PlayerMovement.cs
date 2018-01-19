@@ -102,25 +102,25 @@ public class PlayerMovement : MonoBehaviour
 		// Airborne
 		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Air)
 		{
-			// Check for hang
-			if (mStateMachine.GetHangability())
-			{
-				// If upper raycast hits nothing...
-				if (!Physics.Raycast(transform.position + mHangLimitHigh, transform.forward, out mHangRaycastHigh, mHangMagnitude))
-				{
-					// If inset raycast DOES hit something...
-					if (Physics.Raycast(transform.position + mHangLimitHigh + transform.forward * mHangMagnitude, Vector3.down, out mHangRaycastDown, mHangDelta))
-					{
-						InitiateHang();
-					}
-				}
-			}
-			// Check for balance
-			else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Balance)
-			{
-				// This doesn't trigger yet. 
-				// Remember to replace the condition when finished! 
-			}
+			//// Check for hang
+			//if (mStateMachine.GetHangability())
+			//{
+			//	// If upper raycast hits nothing...
+			//	if (!Physics.Raycast(transform.position + mHangLimitHigh, transform.forward, out mHangRaycastHigh, mHangMagnitude))
+			//	{
+			//		// If inset raycast DOES hit something...
+			//		if (Physics.Raycast(transform.position + mHangLimitHigh + transform.forward * mHangMagnitude, Vector3.down, out mHangRaycastDown, mHangDelta))
+			//		{
+			//			InitiateHang();
+			//		}
+			//	}
+			//}
+			//// Check for balance
+			//else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Balance)
+			//{
+			//	// This doesn't trigger yet. 
+			//	// Remember to replace the condition when finished! 
+			//}
 			// Else, apply gravity
 			if (
 				mStateMachine.GetState() != PlayerStateMachine.PlayerState.Hang 

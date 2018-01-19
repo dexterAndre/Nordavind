@@ -47,7 +47,7 @@ public class PlayerAnimations : HeadAnimatorBehavior
         if (Input.GetButtonDown("Fire3"))
         {
             AnimationLayer_SwitchWeightForScarf();
-            Animation_ThrowSnowball();
+            Animation_ThrowSnowball();  
         }
 
     }

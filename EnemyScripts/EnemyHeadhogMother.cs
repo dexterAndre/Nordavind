@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemySnowballerMother : Actor {
+public class EnemyHeadhogMother : Actor {
 
-    #region Spawn
+
+    #region Spawning of Hedgehogs
 
     /// <summary>
     /// The prefab used to spawn a snowballer during the encounter.
@@ -18,89 +19,121 @@ public class EnemySnowballerMother : Actor {
     /// </summary>
     private Transform[] mSpawnPoints = new Transform[3];
 
-    private int amountSpawnedByMother = 0;
-
-
     /// <summary>
     /// The cooldown before the mother can spawn a new snowballer.
     /// </summary>
     [SerializeField]
     private float spawnCooldown = 5f;
 
+
     /// <summary>
-    /// While TRUE the mother cannot spawn a new snowballer, while FALSE the mother can spawn a new snowballer.
+    /// This int defines amount of spawn each time the mother does an spawn iteration, it allows some visual delay to give it a nicer look.
     /// </summary>
-    private bool haveSpawnedNewSnowballer = false;
+    private int numberSpawned = 0;
 
     /// <summary>
     /// The mother spawns a snowballer, then creates a cooldown before spawning a new one.
     /// </summary>
     /// <returns></returns>
-    private void Spawn_Snowballer()
+    private void Spawn_Hedgehog()
     {
+        numberSpawned = 0;
         mAnimator.SetTrigger("Spawn");
-        StartCoroutine(WaitForRoar());
+        StartCoroutine(WaitForRoar(1f));
     }
 
-    private IEnumerator WaitForRoar()
+    /// <summary>
+    /// Spawns the particles after the roar has been initialized.
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator WaitForRoar(float timeBeforeNextSpawn)
     {
-        yield return new WaitForSeconds(4f);
-        for (int i = 0; i < mSpawnPoints.Length; i++)
-        {
-            GameObject spawnParticle = Instantiate(Spawning_effectPrefab, mSpawnPoints[i].position, Quaternion.identity, null);
-            Destroy(spawnParticle, 4f);
+        yield return new WaitForSeconds(timeBeforeNextSpawn);
+  
+        GameObject spawnParticle = Instantiate(Spawning_effectPrefab, mSpawnPoints[numberSpawned].position, Quaternion.identity, null);
+        Destroy(spawnParticle, 4f);
+        numberSpawned++;
 
-        }
+        if (numberSpawned < 3)
+            StartCoroutine(WaitForRoar(1f));
     }
 
     #endregion
 
-    #region FrostBeam
+    #region Frost-breath
+
+    /// <summary>
+    /// Used to turn on and off the ground particles during the breath (damage zones).
+    /// </summary>
     [Header("Breath")]
     [SerializeField]
     private GameObject[] GroundParticles = new GameObject[40];
 
-    private bool breathIsBeingUsed = false;
-
+    /// <summary>
+    /// Get a refrence to the transform of the where the breath is spawned.
+    /// </summary>
     private Transform mHeadTransform = null;
 
-    private SnowballerMotherAnimations mAnimations = null;
+    /// <summary>
+    /// Get a refrence to the animator of the mother.
+    /// </summary>
+    private SnowballerMotherAnimations motherAnimator = null;
 
-    private bool breathStarted = false;
-
-    [SerializeField]
+    /// <summary>
+    /// Used to find the best way of spreading the raycast used to register the lenght of ground particles.
+    /// </summary>
     private float spreadSizeForRays = 3f;
 
+    /// <summary>
+    /// The particle effect spawned once the breath hit an object.
+    /// <para>  Will be spawned at the raycast hit.</para>
+    /// </summary>
     [SerializeField]
     private GameObject prefabForBreathHit = null;
-    [SerializeField]
-    private float cooldownForBreathHit = 0.5f;
-    private bool isBreathHitOnCooldown = false;
 
+
+    /// <summary>
+    /// This bool is being used to check if the breath is active, once TRUE this will allow for raycast to check distance to nearest object.
+    /// </summary>
+    private bool breathIsBeingUsed = false;
+
+    /// <summary>
+    /// This is the VFX of the breath. This is used to fix the ground particles, and
+    /// </summary>
     [SerializeField]
-    private GameObject PLH_BreathVisuals = null;
+    private GameObject Breath_visualsPLH = null;
 
     private void Breath_Recharge()
     {
         StartCoroutine(Breath_Start());
-        mAnimations.StartBreath();
+        motherAnimator.StartBreath();
 
     }
 
+    //------SHOULD BE REWRITTEN TO ANIMATION EVENT------
+    /// <summary>
+    /// This function will enable the breath visuals.
+    /// </summary>
+    /// <returns></returns>
     private IEnumerator Breath_Start()
     {
         yield return new WaitForSeconds(7f);
-        PLH_BreathVisuals.SetActive(true);
+        Breath_visualsPLH.SetActive(true);
         breathIsBeingUsed = true;
     }
 
+    /// <summary>
+    /// This public function will be called on a event in the animation to disable the breath.
+    /// </summary>
     public void Breath_DisableVisuals()
     {
-        PLH_BreathVisuals.SetActive(false);
+        Breath_visualsPLH.SetActive(false);
+        breathIsBeingUsed = false;
     }
 
-
-
+    /// <summary>
+    /// This function checks the lenght to the nearest object infront of the breath. It will help with collision detection and visuals of the breath.
+    /// </summary>
     private void Breath_CheckForLenght()
     {
         float distanceFromObjectHit = 0f;
@@ -119,7 +152,7 @@ public class EnemySnowballerMother : Actor {
                 startPos = mHeadTransform.position - (mHeadTransform.forward * spreadSizeForRays);
 
             startPos += Vector3.up * 3;
-            
+
             if (Physics.Raycast(startPos, -mHeadTransform.right, out breathHit, Mathf.Infinity))
             {
 
@@ -131,9 +164,9 @@ public class EnemySnowballerMother : Actor {
                     breathFurthesHit = breathHit;
             }
         }
-        if (PLH_BreathVisuals.activeSelf)
+        if (Breath_visualsPLH.activeSelf)
         {
-            GameObject SnowExplosionAtEnd = Instantiate(prefabForBreathHit, breathFurthesHit.point - (Vector3.forward *3f), Quaternion.identity, null);
+            GameObject SnowExplosionAtEnd = Instantiate(prefabForBreathHit, breathFurthesHit.point - (Vector3.forward * 3f), Quaternion.identity, null);
             SnowExplosionAtEnd.transform.LookAt(SnowExplosionAtEnd.transform.position + breathFurthesHit.normal);
             Destroy(SnowExplosionAtEnd, 2f);
         }
@@ -147,6 +180,10 @@ public class EnemySnowballerMother : Actor {
 
     }
 
+    /// <summary>
+    /// This checks the distance from the raycastpoints in the Breath_CheckForLenght() - function, and enable/disable ground effects accordingly.
+    /// </summary>
+    /// <param name="distanceFromHead"></param>
     private void Breath_SetAmountOfGroundParticles(float distanceFromHead)
     {
         float amountProccessed = 10f;
@@ -163,19 +200,27 @@ public class EnemySnowballerMother : Actor {
         }
     }
 
+
     #endregion
+
 
     #region Mother logic / AI
 
     private int currentStep = 0;
 
-
+    [Header("Logic / AI")]
+    /// <summary>
+    /// Just for checking out stuff when press.
+    /// </summary>
+    [SerializeField]
+    private bool useLoop = false;
 
     private IEnumerator MotherActionsLoop()
     {
-        yield return new WaitForSeconds(15f);
-        if (currentStep < 2) {
-            Spawn_Snowballer();
+        yield return new WaitForSeconds(20f);
+        if (currentStep < 2)
+        {
+            Spawn_Hedgehog();
             currentStep++;
         }
         else
@@ -186,16 +231,13 @@ public class EnemySnowballerMother : Actor {
         StartCoroutine(MotherActionsLoop());
     }
 
-    
-
 #endregion
 
-
-    #region UpdateFunctions
+    #region Update functions
 
     private void Start()
     {
-        mAnimations = GetComponent<SnowballerMotherAnimations>();
+        motherAnimator = GetComponent<SnowballerMotherAnimations>();
         Health_SetStandardHealth(mStartingHealth);
         GetActorComponents();
 
@@ -205,7 +247,7 @@ public class EnemySnowballerMother : Actor {
         }
     }
 
-    private void Awake ()
+    private void Awake()
     {
         mHeadTransform = transform.GetChild(1).transform.GetChild(0).transform.GetChild(0).GetComponent<Transform>();
 
@@ -214,15 +256,27 @@ public class EnemySnowballerMother : Actor {
             mSpawnPoints[i] = transform.GetChild(2).transform.GetChild(i).GetComponent<Transform>();
         }
 
-        StartCoroutine(MotherActionsLoop());
-	}
-	
-	private void Update ()
+        if (useLoop)
+        {
+            StartCoroutine(MotherActionsLoop());
+        }
+    }
+
+    private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            Breath_Recharge();
+        }
+        else if (Input.GetKeyDown(KeyCode.N))
+        {
+            Spawn_Hedgehog();
+        }
+
         if (breathIsBeingUsed)
             Breath_CheckForLenght();
-
-
     }
-#endregion
+
+
+    #endregion
 }
