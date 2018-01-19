@@ -39,7 +39,7 @@ public class EnemySnowballer : EnemyController {
     }
     #endregion
 
-    #region Charge
+    #region Sprint
 
     /// <summary>
     /// Bool used to make a delay before checking if the charge hit or not.
@@ -49,94 +49,77 @@ public class EnemySnowballer : EnemyController {
     /// <summary>
     /// Bool used to check if the charging sequence should be started.
     /// </summary>
-    private bool gettingReadyToCharge = false;
+    private bool gettingReadyToSprint = false;
 
     /// <summary>
     /// The bool that activates what happens after the charge, searching for explosion zone / starting damage zone.
     /// </summary>
-    private bool charged = false;
+    private bool sprinting = false;
 
     /// <summary>
     /// This value is set to 1f when the charging sequence starts
     /// </summary>
-    private float chargeTimer = 0f;
+    private float sprintTimer = 0f;
 
     /// <summary>
     /// The force used to push the unit forward when charging at a hostile unit.
     /// </summary>
     [SerializeField]
-    private float chargeForce = 25f;
+    private float sprintSpeed = 25f;
     
     /// <summary>
     /// This float should be tweaked, and is the distance from where this unit goes for a self destruction.
     /// </summary>
     [SerializeField]
-    private float explosionZoneDistanceToActive = 5f;
+    private float explosionZoneDistanceToActive = 1f;
+
+    [SerializeField]
+    private GameObject DeathExplosionParticle = null;
+
 
     /// <summary>
     /// Taking a charge timer, and subtracting 1 per second.
     /// <para>  The unit will look at the target without taking the y-axis into consideration.</para>
     /// <para>  Once the enemy charge, they will at the same frame as adding force look at the target in all axis, incase of having to charge downhill.</para>
     /// </summary>
-    private void ChargeAtTarget()
+    private void SprintAtTarget()
     {
         if (!selfDestructionInitialized)
         {
-            if(chargeTimer >= 0)
-                chargeTimer -= 1 * Time.deltaTime;
-            Vector3 lookTargetWithoutY = mTargetToFollow.position;
-            lookTargetWithoutY = new Vector3(lookTargetWithoutY.x, 0, lookTargetWithoutY.z);
-            transform.LookAt(lookTargetWithoutY);
-            if (chargeTimer <= 0 && !charged)
+            if (sprintTimer >= 0)
             {
-                transform.LookAt(mTargetToFollow.position);
-                mRigidBody.AddForce(transform.forward * chargeForce * Time.deltaTime);
-                gettingReadyToCharge = false;
-                charged = true;
-            }
+                sprintTimer -= 1 * Time.deltaTime;
 
-            if (charged && !checkDelayIfHit)
-            {
-                StartCoroutine(WaitToCheckIfHit());
+                Nav_SetNavMeshDestinationToCertainPosition(transform.position);
+
+                Vector3 lookTargetWithoutY = mTargetToFollow.position;
+                lookTargetWithoutY = new Vector3(lookTargetWithoutY.x, 0, lookTargetWithoutY.z);
+                transform.LookAt(lookTargetWithoutY);
             }
-            else if (!CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position))
+            else if (!sprinting)
             {
-                Nav_GoBackToIdleState();
-                charged = false;
-                gettingReadyToCharge = false;
-                selfDestructionInitialized = false;
-                CheckIfHostileIsWithinRange(transform.position);
+                print("YOOOOOO");
+                sprinting = true;
+                mNavMeshAgent.speed = sprintSpeed;
+                Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
+
             }
+            else
+            {
+                float distanceFromTarget = (transform.position - mTargetToFollow.position).magnitude;
+
+                if (sprinting && distanceFromTarget < explosionZoneDistanceToActive)
+                {
+                    StartCoroutine(SelfDestructionStart());
+                    print("EXPLOOOOO");
+                }
+            }
+                
+           
         }
 
     }
    
-    /// <summary>
-    /// Waits a little bit before it checks if it hits the target, makes it easier to dodge. PS: should perhaps remake it.
-    /// </summary>
-    /// <returns></returns>
-    private IEnumerator WaitToCheckIfHit() {
-        checkDelayIfHit = true;
-        yield return new WaitForSeconds(0.15f);
-        float distance = (transform.position - mTargetToFollow.position).magnitude;
-        if (distance < explosionZoneDistanceToActive)
-        {
-            StartCoroutine(SelfDestructionStart());
-        }
-        else
-        {
-            if (!(CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position)))
-            {
-                Nav_GoBackToIdleState();
-                charged = false;
-                gettingReadyToCharge = false;
-                selfDestructionInitialized = false;
-                CheckIfHostileIsWithinRange(transform.position);
-            }
-            else
-                StartCoroutine(WaitToCheckIfHit());
-        }
-    }
     #endregion
 
     #region Explosion
@@ -151,7 +134,7 @@ public class EnemySnowballer : EnemyController {
     /// <para>  This should depend on the difficulty to dodge, and the duration of the animation.</para>
     /// </summary>
     [SerializeField]
-    private float selfDestructionAnimationDuration = 1f;
+    private float selfDestructionAnimationDuration = 2f;
 
     /// <summary>
     /// This will stop the velocity in the x- and y-axis, and after the ienumerator is complete it will initialize the explosion.
@@ -159,9 +142,8 @@ public class EnemySnowballer : EnemyController {
     /// <returns></returns>
     private IEnumerator SelfDestructionStart()
     {
-        charged = false;
-        mRigidBody.velocity = new Vector3(0f, mRigidBody.velocity.y, 0f);
-        mRigidBody.AddForce(Vector3.up * 250f * Time.deltaTime, ForceMode.Impulse);
+        sprinting = false;
+        Nav_SetNavMeshDestinationToCertainPosition(transform.position);
         selfDestructionInitialized = true;
         yield return new WaitForSeconds(selfDestructionAnimationDuration);
         Explode();
@@ -176,9 +158,9 @@ public class EnemySnowballer : EnemyController {
     private void Explode()
     {
         print(this.gameObject.name + " just exploded");
-        //spawn deathParticle here.
-        //this.gameObject.SetActive(false);
+        GameObject explosionFromHedgehog = Instantiate(DeathExplosionParticle, transform.position, Quaternion.identity, null);
         Destroy(this.gameObject);
+        Destroy(explosionFromHedgehog, 2f);
     }
         
 #endregion
@@ -201,13 +183,12 @@ public class EnemySnowballer : EnemyController {
             StartCoroutine(SearchForEnemy(2f));
         }
 
-        if ((mCurrentStance == TypeOfStances.Following || mCurrentStance == TypeOfStances.Attacking) && !gettingReadyToCharge)
+        if ((mCurrentStance == TypeOfStances.Following || mCurrentStance == TypeOfStances.Attacking) && !gettingReadyToSprint)
         {
             if (CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position))
             {
-                gettingReadyToCharge = true;
-                Nav_StopNavMesh();
-                chargeTimer = 1f;
+                gettingReadyToSprint = true;
+                sprintTimer = 1f;
                 print("Roar sound, and animation");
             }
             else if (mNavMeshAgent.enabled == true)
@@ -221,9 +202,9 @@ public class EnemySnowballer : EnemyController {
             }
         }
 
-        if (gettingReadyToCharge)
+        if (gettingReadyToSprint)
         {
-            ChargeAtTarget();
+            SprintAtTarget();
         }
 	}
     #endregion

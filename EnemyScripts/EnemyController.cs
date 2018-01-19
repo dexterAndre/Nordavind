@@ -126,7 +126,6 @@ public class EnemyController : Actor {
     ///</summary>
     protected void Nav_SetNavMeshDestinationToCertainPosition(Vector3 newTargetPosition)
     {
-        Nav_StartNavMesh();
         mNavMeshAgent.SetDestination(newTargetPosition);
         mLastPosition = newTargetPosition;
     }
@@ -136,7 +135,6 @@ public class EnemyController : Actor {
     /// </summary>
     protected void Nav_GoBackToIdleState()
     {
-        Nav_StartNavMesh();
         mNavMeshAgent.SetDestination(mLastPosition);
         mTargetToFollow = null;
         ChangeCurrentStance(0);
@@ -144,24 +142,6 @@ public class EnemyController : Actor {
         followingMovingTarget = false;
     }
 
-    ///<summary>
-    ///Turns the pathfinding system off. This gives the ability to move the unit automaticly.
-    ///</summary>
-    protected void Nav_StopNavMesh()
-    {
-        mNavMeshAgent.enabled = false;
-        mRigidBody.isKinematic = false;
-        mRigidBody.detectCollisions = true;
-    }
-    
-    ///<summary>
-    ///Turns the pathfinding system ON. This removes the ability to move the unit manually.
-    ///</summary>
-    protected void Nav_StartNavMesh(){
-        mNavMeshAgent.enabled = true;
-        mRigidBody.isKinematic = true;
-        mRigidBody.detectCollisions = false;
-    }
 
     ///<summary>
     ///Saves the current position of this unit to mLastPosition.
@@ -224,7 +204,6 @@ public class EnemyController : Actor {
         if (targetTransform == null)
         {
             print("This unit has no hostile targets in range.");
-            Nav_StartNavMesh();
             foundEnemy = false;
         }
         else
@@ -270,7 +249,6 @@ public class EnemyController : Actor {
     /// <para>  List of components added:</para>
     /// <para>  Nav Mesh Agent.</para>
     /// <para>  Animator.</para>
-    /// <para>  Rigidbody.</para>
     /// </summary>
     protected void SetComponentsAtStart()
     {
@@ -279,10 +257,6 @@ public class EnemyController : Actor {
         if (GetComponent<NavMeshAgent>() != null)
             mNavMeshAgent = GetComponent<NavMeshAgent>();
 
-        if(GetComponent<Rigidbody>() != null)
-            mRigidBody = GetComponent<Rigidbody>();
-
-        Nav_StartNavMesh();
 
         mNavMeshAgent.speed = mIdleSpeed;
 
