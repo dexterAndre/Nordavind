@@ -6,7 +6,6 @@ public class PlayerJump2 : MonoBehaviour
 {
     /*
         To do: 
-
     */
 
     #region Jump
@@ -22,6 +21,10 @@ public class PlayerJump2 : MonoBehaviour
     [Header("Jump Style: Instant")]
     [SerializeField]
     private float mJumpForceInstant = 10f;
+    [Range(0f, 1f)]
+    [SerializeField]
+    [Tooltip("Directional jump weighting between user input (1) and up (0). ")]
+    private float mJumpWeight = 0.75f;
     [Header("Jump Style: Delay")]
     [SerializeField]
     [Tooltip("Initial angle (in degrees) of the jump. ")]
@@ -66,6 +69,23 @@ public class PlayerJump2 : MonoBehaviour
 
 	private void Update ()
 	{
+        switch(mJumpStyle)
+        {
+            case JumpStyle.Instant:
+                {
+                    break;
+                }
+            case JumpStyle.Delay:
+                {
+                    mJumpAngleDelayRemapped = mJumpAngleDelay / 90f;
+                    break;
+                }
+            default:
+                {
+                    break;
+                }
+        }
+
         if (Input.GetButtonDown("Jump")
             && mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
         {
@@ -73,8 +93,14 @@ public class PlayerJump2 : MonoBehaviour
             {
                 case JumpStyle.Instant:
                     {
-                        Jump(Vector3.up * mJumpForceInstant);
-                        print("Jump!");
+                        //Jump((PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)) + Vector3.up * mJumpForceInstant).normalized * mJumpForceInstant);
+                        Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+
+                        if (inputVector != Vector3.zero)
+                            Jump((mJumpWeight * inputVector + (1f - mJumpWeight) * Vector3.up).normalized * mJumpForceInstant);
+                        else
+                            Jump(Vector3.up * mJumpForceInstant);
+
                         break;
                     }
                 case JumpStyle.Delay:
@@ -93,13 +119,16 @@ public class PlayerJump2 : MonoBehaviour
     private void Jump(Vector3 jumpForce)
     {
         mPlayerMovement.SetState(PlayerMovement2.State.Jump);
-        mPlayerMovement.SetMovementVector(jumpForce);
+        mPlayerMovement.SetJumpTimer(1f);
+        mPlayerMovement.SetJumpVector(PlayerMovement2.PlanarMovement(new Vector2(
+            mInputManager.GetStickLeft().x,
+            mInputManager.GetStickLeft().y)) + jumpForce);
     }
 
     private IEnumerator JumpDelay()
     {
         // Setting state
-        mPlayerMovement.SetState(PlayerMovement2.State.Jump);
+        mPlayerMovement.SetState(PlayerMovement2.State.JumpDelay);
 
         // Apply wait time
         WaitForSeconds wait = new WaitForSeconds(mJumpDelayDuration);
@@ -126,13 +155,19 @@ public class PlayerJump2 : MonoBehaviour
                             + mDebugOffset,
                             transform.position 
                             + mDebugOffset
-                            + (mCharacterController.velocity + Vector3.up * mJumpForceInstant)
-                            .normalized 
+                            + (PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)) + Vector3.up * mJumpForceInstant).normalized
                             * mDebuggVectorScale);
                         break;
                     }
                 case JumpStyle.Delay:
                     {
+                        Gizmos.DrawLine(
+                               transform.position
+                               + mDebugOffset,
+                               transform.position
+                               + mDebugOffset
+                               + Vector3.Slerp(transform.forward, Vector3.up, mJumpAngleDelayRemapped)
+                               * mDebuggVectorScale);
                         break;
                     }
                 default:

@@ -20,6 +20,7 @@ public class PlayerMovement2 : MonoBehaviour
     {
         Walk,
         Jump,
+        JumpDelay,
         Air,
         Hang,
         Balance,
@@ -53,11 +54,16 @@ public class PlayerMovement2 : MonoBehaviour
     #region Gravity
     [SerializeField]
     private float mGravityScale = 1f;
-    private float mAirTimer = 0f;
-    public void ResetAirTimer() { mAirTimer = 0f; }
-    private float mVerticalMovement = 0f;
+    private Vector3 mVerticalMovement;
+    public Vector3 GetVerticalMovement() { return mVerticalMovement; }
+    public void SetVerticalMovement(Vector3 verticalMovement) { mVerticalMovement = verticalMovement; }
     #endregion
     #region Jump
+    private float mJumpTimer = 0f;
+    public void SetJumpTimer(float jumpTimer) { mJumpTimer = jumpTimer; }
+    private Vector3 mJumpVector;
+    public Vector3 GetJumpVector() { return mJumpVector; }
+    public void SetJumpVector(Vector3 jumpVector) { mJumpVector = jumpVector; }
     #endregion
     #region Hang
     private bool mCanHang = true; // is set to false if dropping down (or after set amount of time). Resets when hitting ground. 
@@ -123,12 +129,18 @@ public class PlayerMovement2 : MonoBehaviour
             // Check for hang
             if (CheckHang())
             {
-                InitiateHang();
+                
             }
             // Check for balance
             if (CheckBalance())
             {
-                InitiateBalance();
+                
+            }
+
+            // Jump vector
+            if (mJumpVector != Vector3.zero)
+            {
+                mJumpTimer += Time.fixedDeltaTime;
             }
 
             // Check for grounded
@@ -136,14 +148,13 @@ public class PlayerMovement2 : MonoBehaviour
                 && mCharacterController.isGrounded)
             {
                 mState = State.Walk;
-                mAirTimer = 0f;
-                mVerticalMovement = 0f;
+                mVerticalMovement = Vector3.zero;
+                mJumpVector = Vector3.zero;
             }
             else
             {
                 // Else apply gravity
-                mAirTimer += Time.fixedDeltaTime;
-                mVerticalMovement += Physics.gravity.y * mGravityScale * mAirTimer * mAirTimer;
+                mVerticalMovement += Physics.gravity * mGravityScale * Time.fixedDeltaTime;
             }
         }
         #endregion
@@ -178,6 +189,12 @@ public class PlayerMovement2 : MonoBehaviour
                 }
             case State.Air:
                 {
+                    // Jump vector
+                    if (mJumpVector != Vector3.zero)
+                    {
+                        mJumpVector *= 1f / (1f + mJumpTimer * 0.1f);
+                    }
+
                     // Storing movement vector
                     mMovementVector = PlanarMovement(new Vector2(
                         mInputManager.GetStickLeft().x,
@@ -186,8 +203,9 @@ public class PlayerMovement2 : MonoBehaviour
                     // Applying rotation
                     transform.forward = Vector3.Slerp(transform.forward, mMovementVector, mRotationSpeed);
 
-                    // Applying constant downwards force
-                    mMovementVector += new Vector3(0f, mVerticalMovement, 0f) * Time.fixedDeltaTime;
+                    // Collecting influence vectors
+                    mMovementVector += mVerticalMovement;
+                    mMovementVector += mJumpVector;
 
                     // Applying downwards and player-controlled movement
                     mCharacterController.Move(
@@ -198,11 +216,37 @@ public class PlayerMovement2 : MonoBehaviour
 
                     break;
                 }
-            // Only for delay-style jumping - the other one just goes directly into State.Air. 
+            // One frame before jumping, this hack bypasses the isGrounded issue. 
             case State.Jump:
                 {
                     // Applying rotation
-                    transform.forward = Vector3.Slerp(transform.forward, mMovementVector, mRotationSpeed);
+                    transform.forward = Vector3.ProjectOnPlane(
+                        Vector3.Slerp(
+                            transform.forward, 
+                            mMovementVector, 
+                            mRotationSpeed), 
+                        Vector3.up).normalized;
+
+                    // Applying downwards and player-controlled movement
+                    mCharacterController.Move(
+                        (mMovementVector + mJumpVector)
+                        * mWalkSpeed
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.JumpDelay:
+                {
+                    // Applying rotation
+                    transform.forward = Vector3.ProjectOnPlane(
+                        Vector3.Slerp(
+                            transform.forward,
+                            mMovementVector,
+                            mRotationSpeed),
+                        Vector3.up).normalized;
+
+
+
                     break;
                 }
             case State.Roll:
@@ -229,7 +273,10 @@ public class PlayerMovement2 : MonoBehaviour
                     mMovementVector += new Vector3(0f, Physics.gravity.y, 0f) * Time.fixedDeltaTime;
 
                     // Applying movement
-                    mCharacterController.Move(mMovementVector * mWalkSpeed * Time.fixedDeltaTime);
+                    mCharacterController.Move(
+                        mMovementVector 
+                        * mWalkSpeed 
+                        * Time.fixedDeltaTime);
 
                     break;
                 }
@@ -259,7 +306,7 @@ public class PlayerMovement2 : MonoBehaviour
     /// Projects vector onto xz-plane. 
     /// <para>Accepts hoizontal and vertical input in the form of a Vector2. </para>
     /// </summary>
-    public Vector3 PlanarMovement(Vector2 input)
+    static public Vector3 PlanarMovement(Vector2 input)
     {
         Vector3 output = new Vector3(input.x, 0f, input.y);
         Quaternion camDir = Camera.main.transform.rotation;
@@ -294,24 +341,9 @@ public class PlayerMovement2 : MonoBehaviour
             return false;
     }
 
-    private void InitiateHang()
-    {
-
-    }
-
     private bool CheckBalance()
     {
         // Temporary!!!
         return false;
     }
-
-    private void InitiateBalance()
-    {
-
-    }
-
-    //private void InitiateThrow()
-    //{
-    //    // Send priority signal to both cameras! 
-    //}
 }
