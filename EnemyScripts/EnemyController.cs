@@ -15,7 +15,8 @@ public class EnemyController : Actor {
     {
         Idle,
         Following,
-        Attacking
+        Attacking,
+        Exploding
     };
 
     /// <summary>
@@ -29,6 +30,7 @@ public class EnemyController : Actor {
     /// <para>  0 = Idle</para>
     /// <para>  1 = Following</para>
     /// <para>  2 = Attacking</para>
+    /// <para>  3 = Exploding</para>
     /// </summary>
     /// <param name="stanceIndex"></param>
     protected void ChangeCurrentStance(int stanceIndex)
@@ -39,6 +41,8 @@ public class EnemyController : Actor {
             mCurrentStance = TypeOfStances.Following;
         else if (stanceIndex == 2)
             mCurrentStance = TypeOfStances.Attacking;
+        else if (stanceIndex == 3)
+            mCurrentStance = TypeOfStances.Exploding;
         else
             print("The stance you chose does not exist.");
     }
@@ -117,7 +121,6 @@ public class EnemyController : Actor {
         followingMovingTarget = true;
         mNavMeshAgent.speed = mCombatSpeed;
         ChangeCurrentStance(1);
-        print("Unit started following a hostile target");
     }
     
     ///<summary>
@@ -167,7 +170,8 @@ public class EnemyController : Actor {
     /// <summary>
     /// Within this range this unit can spot hostile units.
     /// </summary>
-    protected float mDetectionRange = 50f;
+    [SerializeField]
+    protected float mDetectionRange = 100f;
 
     /// <summary>
     /// Within this range this unit can use their attack against hostile units.
@@ -194,9 +198,8 @@ public class EnemyController : Actor {
         //Using a overlapshere to find nearby targets, then going through the list to see if there is a player here.
         Collider[] hitColliders = Physics.OverlapSphere(mPosition, mDetectionRange);
         for (uint i = 0; i < hitColliders.Length - 1; i++) {
-            if (hitColliders[i].tag == "Player") {
+            if (hitColliders[i].tag == "Player" && hitColliders[i].transform.parent == null) {
                 targetTransform = hitColliders[i].GetComponent<Transform>();
-                print(targetTransform + " - has now been set. Which means that this unit found a hostile.");
             }
         }
 

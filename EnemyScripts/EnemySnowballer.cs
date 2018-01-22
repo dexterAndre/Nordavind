@@ -98,7 +98,6 @@ public class EnemySnowballer : EnemyController {
             }
             else if (!sprinting)
             {
-                print("YOOOOOO");
                 sprinting = true;
                 mNavMeshAgent.speed = sprintSpeed;
                 Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
@@ -108,10 +107,11 @@ public class EnemySnowballer : EnemyController {
             {
                 float distanceFromTarget = (transform.position - mTargetToFollow.position).magnitude;
 
+                transform.LookAt(new Vector3(mTargetToFollow.position.x, transform.position.y, mTargetToFollow.position.z));
                 if (sprinting && distanceFromTarget < explosionZoneDistanceToActive)
                 {
+                    ChangeCurrentStance(3);
                     StartCoroutine(SelfDestructionStart());
-                    print("EXPLOOOOO");
                 }
             }
                 
@@ -180,29 +180,28 @@ public class EnemySnowballer : EnemyController {
     {
         if (!recentlySearchedForHostiles && mCurrentStance == TypeOfStances.Idle)
         {
-            StartCoroutine(SearchForEnemy(2f));
+            StartCoroutine(SearchForEnemy(1f));
         }
 
-        if ((mCurrentStance == TypeOfStances.Following || mCurrentStance == TypeOfStances.Attacking) && !gettingReadyToSprint)
+        //if (mTargetToFollow == null)
+        //    Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
+        //else
+        //
+
+        if(mTargetToFollow != null && mCurrentStance != TypeOfStances.Exploding)
+            Nav_UpdateFollowingTarget();
+
+
+        if (mCurrentStance == TypeOfStances.Following && !gettingReadyToSprint)
         {
             if (CheckIfHostileIsWithinAttackRange(transform.position, mTargetToFollow.position))
             {
                 gettingReadyToSprint = true;
                 sprintTimer = 1f;
-                print("Roar sound, and animation");
-            }
-            else if (mNavMeshAgent.enabled == true)
-            {
-                print("Should start moving");
-
-                if (mTargetToFollow == null)
-                    Nav_SetNavMeshDestinationToMovingObject(mTargetToFollow);
-
-                Nav_UpdateFollowingTarget();
+                ChangeCurrentStance(2);
             }
         }
-
-        if (gettingReadyToSprint)
+        else if (gettingReadyToSprint && mCurrentStance == TypeOfStances.Attacking)
         {
             SprintAtTarget();
         }

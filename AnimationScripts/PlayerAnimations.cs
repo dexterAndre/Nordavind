@@ -52,6 +52,11 @@ public class PlayerAnimations : HeadAnimatorBehavior
             Animation_SetMovement();
             
         }
+
+        if (Input.GetButtonDown("Fire2"))
+        {
+            mAnimator.SetTrigger("Roll");
+        }
             
 
         if (Input.GetButtonDown("Fire3"))
