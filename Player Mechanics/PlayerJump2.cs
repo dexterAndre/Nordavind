@@ -42,8 +42,6 @@ public class PlayerJump2 : MonoBehaviour
     private PlayerMovement2 mPlayerMovement = null;
     [SerializeField]
     private InputManager mInputManager = null;
-    [SerializeField]
-    private CharacterController mCharacterController = null;
     #endregion
     #region Debug
     [Header("Debug")]
@@ -63,8 +61,6 @@ public class PlayerJump2 : MonoBehaviour
             mPlayerMovement = GetComponent<PlayerMovement2>();
         if (mInputManager == null)
             mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>(); // optimize this! 
-        if (mCharacterController == null)
-            mCharacterController = GetComponent<CharacterController>();
     }
 
 	private void Update ()

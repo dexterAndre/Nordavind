@@ -9,6 +9,8 @@ public class PlayerMovement2 : MonoBehaviour
         - Use properties instead of getters and setters
         - Use UnityEvent and Delegates
         - Remove [SerializeField] on #region References code. Not interesting. 
+        - Add god descriptions for all functions. "/// summary"
+        - Remove old versions of gamepay scripts, rename "GameplayScript2" with "GameplayScript". 
     */
 
     /*
@@ -26,6 +28,7 @@ public class PlayerMovement2 : MonoBehaviour
         Hang,
         Balance,
         Roll,
+        RollDelay,
         Throw,
         Slide
     };
@@ -68,10 +71,6 @@ public class PlayerMovement2 : MonoBehaviour
     #endregion
     #region Hang
     private bool mCanHang = true; // is set to false if dropping down (or after set amount of time). Resets when hitting ground. 
-    #endregion
-    #region Other
-    // Other mechanics
-    private Vector3 mRollVector = Vector3.zero;
     #endregion
     #region References
     [Header("References")]
@@ -247,11 +246,21 @@ public class PlayerMovement2 : MonoBehaviour
                             mRotationSpeed),
                         Vector3.up).normalized;
 
-
-
                     break;
                 }
             case State.Roll:
+                {
+                    // Applying constant downwards force
+                    mMovementVector += mVerticalMovement;
+
+                    // Applying forward movement
+                    mCharacterController.Move(
+                        mMovementVector
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.RollDelay:
                 {
                     break;
                 }
