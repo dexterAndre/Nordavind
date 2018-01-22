@@ -119,7 +119,6 @@ public class PlayerJump2 : MonoBehaviour
     private void Jump(Vector3 jumpForce)
     {
         mPlayerMovement.SetState(PlayerMovement2.State.Jump);
-        mPlayerMovement.SetJumpTimer(1f);
         mPlayerMovement.SetJumpVector(PlayerMovement2.PlanarMovement(new Vector2(
             mInputManager.GetStickLeft().x,
             mInputManager.GetStickLeft().y)) + jumpForce);
@@ -138,7 +137,11 @@ public class PlayerJump2 : MonoBehaviour
         mJumpAngleDelayRemapped = mJumpAngleDelay / 90f;
 
         // Apply jump
-        Jump(Vector3.Slerp(transform.forward, Vector3.up, mJumpAngleDelayRemapped) * mJumpForceDelay);
+        Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+        if (inputVector == Vector3.zero)
+            Jump(Vector3.up * mJumpForceDelay);
+        else
+            Jump(Vector3.Slerp(transform.forward, Vector3.up, mJumpAngleDelayRemapped) * mJumpForceDelay);
     }
 
     private void OnDrawGizmosSelected()

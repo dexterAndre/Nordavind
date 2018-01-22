@@ -8,6 +8,7 @@ public class PlayerMovement2 : MonoBehaviour
         General (all scripts) to do: 
         - Use properties instead of getters and setters
         - Use UnityEvent and Delegates
+        - Remove [SerializeField] on #region References code. Not interesting. 
     */
 
     /*
@@ -150,6 +151,7 @@ public class PlayerMovement2 : MonoBehaviour
                 mState = State.Walk;
                 mVerticalMovement = Vector3.zero;
                 mJumpVector = Vector3.zero;
+                mJumpTimer = 0f;
             }
             else
             {
