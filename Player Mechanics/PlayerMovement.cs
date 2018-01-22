@@ -10,6 +10,7 @@ public class PlayerMovement : MonoBehaviour
 	- Stop before jumping. 
     - Hang bug (sets to (0, 0, 0))
     - Add roll crashing
+    - Roll-to-jump (interruption)
 	*/
 
     #region Walk
@@ -87,6 +88,17 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
 
+
+    public enum State
+    {
+        Walk,
+        Air,
+        Hang,
+        Balance,
+        Roll,
+        Aim,
+        Slide
+    };
 
     private void Awake ()
 	{
@@ -185,6 +197,8 @@ public class PlayerMovement : MonoBehaviour
 		// Balance
 	}
 
+    
+
 	public void Reset()
 	{
 		transform.position = new Vector3(0f, 2f, 0f);
@@ -193,7 +207,12 @@ public class PlayerMovement : MonoBehaviour
 		mVerticalMovement = 0f;
 	}
 
-    public IEnumerator InitiateJump()
+    public void InitiateJump()
+    {
+
+    }
+
+    private IEnumerator Jump()
     {
         // Apply wait time
         WaitForSeconds wait = new WaitForSeconds(mJumpChargeDuration);
@@ -227,7 +246,12 @@ public class PlayerMovement : MonoBehaviour
 		mStateMachine.SetState(PlayerStateMachine.PlayerState.Hang);
 	}
 
-	public IEnumerator InitiateClimb()
+    public void InitiateClimb()
+    {
+
+    }
+
+	private IEnumerator Climb()
 	{
 		// Applying wait time
 		WaitForSeconds wait = new WaitForSeconds(mClimbAnimationDuration);
@@ -266,6 +290,11 @@ public class PlayerMovement : MonoBehaviour
 		// Setting rotation
 		transform.forward = mMovementVector.normalized;
 	}
+
+    public void InitiateAim()
+    {
+
+    }
 
 	private void OnDrawGizmosSelected()
 	{

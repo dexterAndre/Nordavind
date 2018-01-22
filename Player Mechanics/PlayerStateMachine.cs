@@ -161,7 +161,7 @@ public class PlayerStateMachine : MonoBehaviour
 			// Climb
 			if (Input.GetButtonDown("Jump"))
 			{
-				StartCoroutine(mPlayerMovement.InitiateClimb());
+				mPlayerMovement.InitiateClimb();
 			}
 			// Drop
 			if (Input.GetButtonDown("Fire2"))

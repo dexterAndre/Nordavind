@@ -13,7 +13,7 @@ public class PlayerThrow : MonoBehaviour
     - Lock-on system for free throwing? 
     - Adjust projectile rigidbody from Throw script. 
     - - Add gravityscale in Throw for the Projectile. 
-    - - - Add gravity extra vector in ProjectileBehavior
+    - - - Add gravity extra vector in ProjectileBehavior. 
     */
 
     [Header("Throw Settings")]
