@@ -10,12 +10,8 @@ public class PlayerAnimations : HeadAnimatorBehavior
 
     private bool hasJumped = false;
 
-	void Start () {
-        GetHeadAnimtorComponents();
-        mPlayerStateMachine = transform.parent.GetComponent<PlayerStateMachine>();
-        mPlayerMovement = transform.parent.GetComponent<PlayerMovement>();
-    }
 
+    #region Animator set-animationstates
     private void Animation_SetMovement()
     {
             mAnimator.SetFloat("Speed", mPlayerMovement.GetMovementSpeed());
@@ -36,13 +32,27 @@ public class PlayerAnimations : HeadAnimatorBehavior
         mAnimator.SetLayerWeight(1, 0);
         mAnimator.SetLayerWeight(2, 1);
     }
+    #endregion
 
+
+
+
+    void Start()
+    {
+        GetHeadAnimtorComponents();
+        mPlayerStateMachine = transform.parent.GetComponent<PlayerStateMachine>();
+        mPlayerMovement = transform.parent.GetComponent<PlayerMovement>();
+    }
 
     private void Update()
     {
-
+        
         if (mPlayerMovement.GetGroundedState())
+        {
             Animation_SetMovement();
+            
+        }
+            
 
         if (Input.GetButtonDown("Fire3"))
         {
