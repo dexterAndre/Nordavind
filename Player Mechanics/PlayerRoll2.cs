@@ -7,6 +7,7 @@ public class PlayerRoll2 : MonoBehaviour
     /* 
         To do: 
         - Prevent ROLL -> AIR, R DELAY -> AIR, and WALK -> AIR from automatically happening after roll. 
+        - roll-and-crash
     */
 
 
@@ -24,6 +25,27 @@ public class PlayerRoll2 : MonoBehaviour
     [SerializeField]
     private float mRollCooldown = 2f;
     private float mRollCooldownTimer = 0f;
+    [Header("Crash")]   // Make crash into a generic STUN feature
+    [SerializeField]
+    [Tooltip("How high up the raycast checks. ")]
+    private float mCrashHeight = 0.25f;
+    [SerializeField]
+    [Tooltip("How far the raycast checks. ")]
+    private float mCrashRayMagnitude = 0.5f;
+    [SerializeField]
+    [Tooltip("Adjustment to avoid hitting self. ")]
+    private float mCrashRayMagnitudeSafeZone = 0.1f;
+    [SerializeField]
+    [Tooltip("How long the crash lasts. ")]
+    private float mCrashDuration = 0.5f;
+    [SerializeField]
+    [Tooltip("How big the angle of impact must be to trigger a crash. Counts all angles above this value as well. ")]
+    private float mCrashAngleLimit = 60f;
+    [SerializeField]
+    [Tooltip("How far the avatar goes flying backwards upon crashing.")]
+    private float mCrashPushDistance = 1f;
+    private RaycastHit mCrashHit;
+    private Vector3 mCrashPos0;
     #endregion
     #region References
     [Header("References")]
@@ -31,6 +53,8 @@ public class PlayerRoll2 : MonoBehaviour
     private PlayerMovement2 mPlayerMovement = null;
     [SerializeField]
     private InputManager mInputManager = null;
+    [SerializeField]
+    private CharacterController mCharacterController = null;
     #endregion
     #region Debug
     [Header("Debug")]
@@ -50,6 +74,8 @@ public class PlayerRoll2 : MonoBehaviour
             mPlayerMovement = GetComponent<PlayerMovement2>();
         if (mInputManager == null)
             mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>(); // optimize this! 
+        if (mCharacterController == null)
+            mCharacterController = GetComponent<CharacterController>();
     }
 
     private void Update()
@@ -76,6 +102,12 @@ public class PlayerRoll2 : MonoBehaviour
 
     private void FixedUpdate ()
 	{
+        // Ray start position
+        mCrashPos0 =
+            transform.position
+            + new Vector3(0f, -mCharacterController.height / 2f + mCrashHeight, 0f)
+            + transform.forward * mCharacterController.radius;
+
         // Cooldown
         if (mRollCooldownTimer > 0f)
         {
@@ -86,9 +118,16 @@ public class PlayerRoll2 : MonoBehaviour
             }
         }
 
-        // Roll timer
-        if (mRollTimer > 0f)
+        // During roll
+        if (mPlayerMovement.GetState() == PlayerMovement2.State.Roll
+            && mRollTimer > 0f)
         {
+            // Check for crash
+            if (mPlayerMovement.GetState() == PlayerMovement2.State.Roll)
+            {
+                CheckCrash();
+            }
+
             mRollTimer += Time.fixedDeltaTime;
             if (mRollTimer >= mRollDuration)
             {
@@ -105,7 +144,8 @@ public class PlayerRoll2 : MonoBehaviour
         }
 
         // After rolling (some delay time to prevent spamming)
-        if (mRollDelayTimer > 0f)
+        if (mPlayerMovement.GetState() == PlayerMovement2.State.RollDelay
+            && mRollDelayTimer > 0f)
         {
             mPlayerMovement.SetState(PlayerMovement2.State.RollDelay);  // Quick bug-fix! 
             mRollDelayTimer += Time.fixedDeltaTime;
@@ -116,7 +156,7 @@ public class PlayerRoll2 : MonoBehaviour
 
                 // Pushes the CharacterController downwards to avoid transitioning to air. 
                 // Now it transitions directly from ROLL DELAY to WALK. 
-                GetComponent<CharacterController>().Move(Physics.gravity * Time.fixedDeltaTime);
+                mCharacterController.Move(Physics.gravity * Time.fixedDeltaTime);
 
                 // Debug
                 if (mIsDebuggingRoll)
@@ -134,5 +174,39 @@ public class PlayerRoll2 : MonoBehaviour
         Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
         mPlayerMovement.SetMovementVector(inputVector * mRollSpeed);
         mRollTimer += Time.fixedDeltaTime;
+    }
+
+    private void CheckCrash()
+    {
+        // Setting up variables
+        int layerMask = 1 << 8; // 8: Player
+
+        // If hitting something
+        if (Physics.Raycast(mCrashPos0 + transform.forward * mCrashRayMagnitudeSafeZone, Vector3.forward, out mCrashHit, mCrashRayMagnitude - mCrashRayMagnitudeSafeZone, layerMask))
+        {
+            // If normal is within crashing angle
+            if (Vector3.Angle(mCrashHit.normal, -transform.forward) >= mCrashAngleLimit)
+            {
+                // Resetting variables
+                mRollTimer = 0f;
+                mRollDelayTimer = 0f;
+
+                mPlayerMovement.Stun(-transform.forward, mCrashDuration);
+
+                // Debug
+                if (mIsDebuggingRoll)
+                {
+                    print("AUTO TRANSITION: \t ROLL \t -> \t STUN. ");
+                }
+            }
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = mDebugColor;            
+        Gizmos.DrawLine(
+            mCrashPos0 + transform.forward * mCrashRayMagnitudeSafeZone,
+            mCrashPos0 + transform.forward * (mCrashRayMagnitude - mCrashRayMagnitudeSafeZone));
     }
 }

@@ -29,6 +29,8 @@ public class PlayerMovement2 : MonoBehaviour
         Balance,
         Roll,
         RollDelay,
+        Stun,
+        StunRecover,
         Throw,
         Slide
     };
@@ -54,6 +56,22 @@ public class PlayerMovement2 : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)]
     private float mRotationSpeed = 0.3f;
+    #endregion
+    #region Stun
+    [Header("Stun")]
+    [SerializeField]
+    private float mStunDuration = 0.5f;
+    private float mStunDurationSpecific = 0f;
+    public void SetStunDurationSpecific(float stunDuration) { mStunDurationSpecific = stunDuration; }
+    [SerializeField]
+    private float mStunFalloffMultiplier = 5f;
+    private float mStunTimer = 0f;
+    [SerializeField]
+    [Tooltip("Time to get back up on your feet after stun. ")]
+    private float mStunRecoveryDuration = 0.25f;
+    private float mStunRecoveryTimer = 0f;
+    [SerializeField]
+    private float mStunSpeedInitial = 20f;
     #endregion
     #region Gravity
     [SerializeField]
@@ -121,7 +139,9 @@ public class PlayerMovement2 : MonoBehaviour
             && mState != State.Hang
             && mState != State.Balance
             && mState != State.Roll
-            && mState != State.RollDelay)
+            && mState != State.RollDelay
+            && mState != State.Stun
+            && mState != State.StunRecover)
         {
             mState = State.Air;
 
@@ -132,7 +152,7 @@ public class PlayerMovement2 : MonoBehaviour
             }
         }
 
-        // Airborne transitions
+        // Transitions
         if (mState == State.Air)
         {
             // Check for hang
@@ -181,6 +201,58 @@ public class PlayerMovement2 : MonoBehaviour
             {
                 // Else apply gravity
                 mVerticalMovement += Physics.gravity * mGravityScale * Time.fixedDeltaTime;
+            }
+        }
+        else if (mState == State.Stun)
+        {
+            // Timer
+            mStunTimer += Time.fixedDeltaTime;
+            if (mStunDurationSpecific == 0f)
+            {
+                // Standard stun
+                if (mStunTimer >= mStunDuration)
+                {
+                    mStunTimer = 0f;
+                    mState = State.StunRecover;
+
+                    // Debug
+                    if (mIsDebuggingMovement)
+                    {
+                        print("AUTO TRANSITION: \t STUN \t -> \t STUN R. ");
+                    }
+                }
+            }
+            else
+            {
+                // Specific stun
+                if (mStunTimer >= mStunDurationSpecific)
+                {
+                    mStunTimer = 0f;
+                    mStunDurationSpecific = 0f;
+                    mState = State.StunRecover;
+
+                    // Debug
+                    if (mIsDebuggingMovement)
+                    {
+                        print("AUTO TRANSITION: \t STUN \t -> \t STUN R. ");
+                    }
+                }
+            }
+        }
+        else if (mState == State.StunRecover)
+        {
+            // Timer
+            mStunRecoveryTimer += Time.fixedDeltaTime;
+            if (mStunRecoveryTimer >= mStunRecoveryDuration)
+            {
+                mStunRecoveryTimer = 0f;
+                mState = State.Walk;
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t STUN R \t -> \t WALK. ");
+                }
             }
         }
         #endregion
@@ -287,6 +359,25 @@ public class PlayerMovement2 : MonoBehaviour
                 }
             case State.RollDelay:
                 {
+                    // Nothing happens here. Maybe later at some point? 
+                    break;
+                }
+            case State.Stun:
+                {
+                    // Applying constant downwards force
+                    mMovementVector += mVerticalMovement;
+
+                    // Applying backwards movement
+                    mCharacterController.Move(
+                        mMovementVector
+                        * (mStunSpeedInitial / (1f + mStunTimer * mStunFalloffMultiplier))
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.StunRecover:
+                {
+                    // Nothing happens here. Maybe later at some point? 
                     break;
                 }
             case State.Throw:
@@ -381,5 +472,17 @@ public class PlayerMovement2 : MonoBehaviour
     {
         // Temporary!!!
         return false;
+    }
+
+    public void Stun(Vector3 direction)
+    {
+        mMovementVector = direction;
+        mState = State.Stun;
+    }
+    public void Stun(Vector3 direction, float duration)
+    {
+        mMovementVector = direction;
+        mState = State.Stun;
+        mStunDurationSpecific = duration;
     }
 }
