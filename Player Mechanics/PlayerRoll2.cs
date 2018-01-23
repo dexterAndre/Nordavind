@@ -6,6 +6,7 @@ public class PlayerRoll2 : MonoBehaviour
 {
     /* 
         To do: 
+        - Prevent ROLL -> AIR, R DELAY -> AIR, and WALK -> AIR from automatically happening after roll. 
     */
 
 
@@ -54,10 +55,22 @@ public class PlayerRoll2 : MonoBehaviour
     private void Update()
     {
         if (Input.GetButtonDown("Fire2") 
-            && mRollCooldownTimer == 0f 
-            && mRollDelayTimer == 0f)
+            && mRollCooldownTimer == 0f
+            && mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
         {
+            // Debug
+            if (mIsDebuggingRoll)
+            {
+                print("BUTTON PRESS: \t B. ");
+            }
+
             Roll();
+
+            // Debug
+            if (mIsDebuggingRoll)
+            {
+                print("MAN TRANSITION: \t WALK \t -> \t ROLL. ");
+            }
         }
     }
 
@@ -80,27 +93,38 @@ public class PlayerRoll2 : MonoBehaviour
             if (mRollTimer >= mRollDuration)
             {
                 mRollTimer = 0f;
+                mRollDelayTimer += Time.fixedDeltaTime;
                 mPlayerMovement.SetState(PlayerMovement2.State.RollDelay);
+
+                // Debug
+                if (mIsDebuggingRoll)
+                {
+                    print("AUTO TRANSITION: \t ROLL \t -> \t R DELAY. ");
+                }
             }
         }
 
         // After rolling (some delay time to prevent spamming)
         if (mRollDelayTimer > 0f)
         {
+            mPlayerMovement.SetState(PlayerMovement2.State.RollDelay);  // Quick bug-fix! 
             mRollDelayTimer += Time.fixedDeltaTime;
             if (mRollDelayTimer >= mRollDelayDuration)
             {
                 mRollDelayTimer = 0f;
                 mPlayerMovement.SetState(PlayerMovement2.State.Walk);
+
+                // Pushes the CharacterController downwards to avoid transitioning to air. 
+                // Now it transitions directly from ROLL DELAY to WALK. 
+                GetComponent<CharacterController>().Move(Physics.gravity * Time.fixedDeltaTime);
+
+                // Debug
+                if (mIsDebuggingRoll)
+                {
+                    print("AUTO TRANSITION: \t R DELAY \t -> \t WALK. ");
+                }
             }
         }
-        //else if (mRollDelayTimer == 0f && mPlayerMovement.GetState() == PlayerMovement2.State.RollDelay)
-        //{
-        //    if (mRollDelayTimer > 0f)
-        //    {
-        //        mRollDelayTimer += Time.fixedDeltaTime;
-        //    }
-        //}
     }
 
     private void Roll()
@@ -109,5 +133,6 @@ public class PlayerRoll2 : MonoBehaviour
         mPlayerMovement.SetState(PlayerMovement2.State.Roll);
         Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
         mPlayerMovement.SetMovementVector(inputVector * mRollSpeed);
+        mRollTimer += Time.fixedDeltaTime;
     }
 }

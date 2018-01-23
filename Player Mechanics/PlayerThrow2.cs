@@ -51,7 +51,7 @@ public class PlayerThrow2 : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField]
-    private bool mIsDebugging = true;
+    private bool mIsDebuggingThrow = true;
     [SerializeField]
     private Color mDebugAimedColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 255f / 255f);
     [SerializeField]
@@ -109,9 +109,16 @@ public class PlayerThrow2 : MonoBehaviour
         // Sending signals
         if (mInputManager.GetTriggers().x != 0f)
         {
+
             // Walk-to-throw
             if (mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
             {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON PRESS: \t LT. ");
+                }
+
                 mPlayerMovement.SetState(PlayerMovement2.State.Throw);
 
                 // Movement
@@ -122,6 +129,12 @@ public class PlayerThrow2 : MonoBehaviour
                 mCameraAim.Priority = 10;
                 // Prevent standard camera from drifting when changing between cameras
                 mCameraStandard.m_XAxis.m_InputAxisValue = 0f;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t WALK \t -> \t THROW. ");
+                }
             }
             
             // Perform aimed throw
@@ -131,6 +144,12 @@ public class PlayerThrow2 : MonoBehaviour
                     mPlayerMovement.GetState() == PlayerMovement2.State.Throw 
                     && mInputManager.GetTriggers().y != 0f)
                 {
+                    // Debug
+                    if (mIsDebuggingThrow)
+                    {
+                        print("BUTTON PRESS: \t RT. ");
+                    }
+
                     Throw(
                         mAimedThrowSpawn.position,
                         (mAimedThrowSpawn.position - Camera.main.transform.position)
@@ -145,6 +164,12 @@ public class PlayerThrow2 : MonoBehaviour
             // Throw-to-walk
             if (mPlayerMovement.GetState() == PlayerMovement2.State.Throw)
             {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON RELEASE: \t LT. ");
+                }
+
                 mPlayerMovement.SetState(PlayerMovement2.State.Walk);
 
                 // Movement
@@ -153,6 +178,12 @@ public class PlayerThrow2 : MonoBehaviour
                 // Enabling standard camera, disabling aim camera
                 mCameraStandard.Priority = 10;
                 mCameraAim.Priority = 1;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t THROW \t -> \t WALK. ");
+                }
             }
             
             // Perform free throw
@@ -192,7 +223,7 @@ public class PlayerThrow2 : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (mIsDebugging)
+        if (mIsDebuggingThrow)
         {
             Gizmos.color = mDebugAimedColor;
             Gizmos.DrawLine(

@@ -85,6 +85,12 @@ public class PlayerJump2 : MonoBehaviour
         if (Input.GetButtonDown("Jump")
             && mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
         {
+            // Debug
+            if (mIsDebuggingJump)
+            {
+                print("BUTTON PRESS: \t Y. ");
+            }
+
             switch (mJumpStyle)
             {
                 case JumpStyle.Instant:
@@ -97,11 +103,24 @@ public class PlayerJump2 : MonoBehaviour
                         else
                             Jump(Vector3.up * mJumpForceInstant);
 
+                        // Debug
+                        if (mIsDebuggingJump)
+                        {
+                            print("MAN TRANSITION: \t WALK \t -> \t AIR (instant jump). ");
+                        }
+
                         break;
                     }
                 case JumpStyle.Delay:
                     {
                         StartCoroutine(JumpDelay());
+
+                        // Debug
+                        if (mIsDebuggingJump)
+                        {
+                            print("MAN TRANSITION: \t WALK \t -> \t AIR (delay jump). ");
+                        }
+
                         break;
                     }
                 default:

@@ -116,11 +116,20 @@ public class PlayerMovement2 : MonoBehaviour
 	{
         #region Automatic State Detection
         // Check if airborne
-        if (!mCharacterController.isGrounded
+        if (mState != State.Air
+            && !mCharacterController.isGrounded
             && mState != State.Hang
-            && mState != State.Balance)
+            && mState != State.Balance
+            && mState != State.Roll
+            && mState != State.RollDelay)
         {
             mState = State.Air;
+
+            // Debug
+            if (mIsDebuggingMovement)
+            {
+                print("AUTO TRANSITION: \t ANY \t -> \t AIR. ");
+            }
         }
 
         // Airborne transitions
@@ -129,12 +138,22 @@ public class PlayerMovement2 : MonoBehaviour
             // Check for hang
             if (CheckHang())
             {
-                
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t HANG. ");
+                }
             }
             // Check for balance
             if (CheckBalance())
             {
-                
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t BALANCE. ");
+                }
             }
 
             // Jump vector
@@ -151,6 +170,12 @@ public class PlayerMovement2 : MonoBehaviour
                 mVerticalMovement = Vector3.zero;
                 mJumpVector = Vector3.zero;
                 mJumpTimer = 0f;
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t WALK. ");
+                }
             }
             else
             {
