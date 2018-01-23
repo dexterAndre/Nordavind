@@ -3,6 +3,11 @@ using System.Collections;
 
 public class InputManager : MonoBehaviour
 {
+    /*
+        To do: 
+        - Detect change between mouse & keyboard, and gamepad
+    */
+
     [Header("Input Containers")]
     [SerializeField]
     private Vector2 mStickLeft = Vector2.zero;
@@ -40,10 +45,10 @@ public class InputManager : MonoBehaviour
     private float mCameraAimDollySensitivity = 1f;
     public float GetCameraAimDollySensitivity() { return mCameraAimDollySensitivity; }
 
-    [Header("Controllers")]
-    [SerializeField]
+    //[Header("Controllers")]
+    //[SerializeField]
     // Placeholder thing. Do more like these, but meaningful! 
-    private float mSensitivityBeforeMouseDetected = 1f;
+    //private float mSensitivityBeforeMouseDetected = 1f;
 
 
 

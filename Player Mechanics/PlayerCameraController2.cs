@@ -7,8 +7,7 @@ public class PlayerCameraController2 : MonoBehaviour
 {
     /*
         To-do: 
-        - transition from throw to standard looks weird. update standard even when it's not active, and sync the two. 
-        - Bug: when transitioning from aim to standard, if you rotate avatar, camera behaves wonky
+        - Bug: when transitioning from aim to standard, if you rotate avatar, camera behaves wonkily
     */
     [Header("Camera Settings")]
     [SerializeField]

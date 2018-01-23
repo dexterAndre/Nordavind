@@ -34,7 +34,6 @@ public class PlayerJump2 : MonoBehaviour
     private float mJumpAngleDelayRemapped = 0f;
     [SerializeField]
     private float mJumpDelayDuration = 0.25f;
-    private float mJumpDelayTimer = 0f;
     #endregion
     #region References
     [Header("References")]

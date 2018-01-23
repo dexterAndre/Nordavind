@@ -102,19 +102,19 @@ public class PlayerMovement2 : MonoBehaviour
     [Header("Debug")]
     [SerializeField]
     private bool mIsDebuggingMovement = true;
-    [SerializeField]
-    private Vector3 mDebugMovementOffset = new Vector3(0f, 2f, 0f);
-    [SerializeField]
-    private Color mDebugMovementColor = Color.red;
+    //[SerializeField]
+    //private Vector3 mDebugMovementOffset = new Vector3(0f, 2f, 0f);
+    //[SerializeField]
+    //private Color mDebugMovementColor = Color.red;
     #endregion
-    [Space(10)]
+    //[Space(10)]
     #region Hanging
-    [SerializeField]
-    private bool mIsDebuggingHanging = true;
-    [SerializeField]
-    private Vector3 mDebugHangingOffset = new Vector3(0f, 2f, 0f);
-    [SerializeField]
-    private Color mDebugHangingColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 1f);
+    //[SerializeField]
+    //private bool mIsDebuggingHanging = true;
+    //[SerializeField]
+    //private Vector3 mDebugHangingOffset = new Vector3(0f, 2f, 0f);
+    //[SerializeField]
+    //private Color mDebugHangingColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 1f);
     #endregion
     #region Sliding
     #endregion
@@ -350,6 +350,9 @@ public class PlayerMovement2 : MonoBehaviour
                     // Applying constant downwards force
                     mMovementVector += mVerticalMovement;
 
+                    // Correcting rotation
+                    transform.forward = mMovementVector.normalized;
+
                     // Applying forward movement
                     mCharacterController.Move(
                         mMovementVector
@@ -444,9 +447,6 @@ public class PlayerMovement2 : MonoBehaviour
 
     private bool CheckHang()
     {
-        // Temporary!!!
-        return false;
-
         // Are you allowed to hang? 
         if (mCanHang)
         {
@@ -456,7 +456,8 @@ public class PlayerMovement2 : MonoBehaviour
                 // If inset raycast hits something...
                 if (mCanHang)
                 {
-                    return true;
+                    //return true;
+                    return false; // temporary hack
                 }
                 else
                     return false;

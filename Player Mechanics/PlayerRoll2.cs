@@ -6,8 +6,6 @@ public class PlayerRoll2 : MonoBehaviour
 {
     /* 
         To do: 
-        - Prevent ROLL -> AIR, R DELAY -> AIR, and WALK -> AIR from automatically happening after roll. 
-        - roll-and-crash
     */
 
 
@@ -21,6 +19,8 @@ public class PlayerRoll2 : MonoBehaviour
     [SerializeField]
     private float mRollDelayDuration = 0.035f;
     private float mRollDelayTimer = 0f;
+    [SerializeField]
+    private bool mRollSoftAdjustment = true;
     [Header("Cooldown")]
     [SerializeField]
     private float mRollCooldown = 2f;
@@ -41,11 +41,13 @@ public class PlayerRoll2 : MonoBehaviour
     [SerializeField]
     [Tooltip("How big the angle of impact must be to trigger a crash. Counts all angles above this value as well. ")]
     private float mCrashAngleLimit = 60f;
-    [SerializeField]
-    [Tooltip("How far the avatar goes flying backwards upon crashing.")]
-    private float mCrashPushDistance = 1f;
+    //[SerializeField]
+    //[Tooltip("How far the avatar goes flying backwards upon crashing.")]
+    //private float mCrashPushDistance = 1f;
     private RaycastHit mCrashHit;
     private Vector3 mCrashPos0;
+    [SerializeField]
+    private LayerMask mCrashLayer;
     #endregion
     #region References
     [Header("References")]
@@ -61,8 +63,6 @@ public class PlayerRoll2 : MonoBehaviour
     [SerializeField]
     private bool mIsDebuggingRoll = true;
     [SerializeField]
-    private Vector3 mDebugOffset = new Vector3(0f, 1.5f, 0f);
-    [SerializeField]
     private Color mDebugColor = new Color(255f, 125f, 255f, 255f);
     #endregion
 
@@ -70,6 +70,8 @@ public class PlayerRoll2 : MonoBehaviour
 
     private void Awake()
     {
+        //Physics.IgnoreLayerCollision(10, 2);
+
         if (mPlayerMovement == null)
             mPlayerMovement = GetComponent<PlayerMovement2>();
         if (mInputManager == null)
@@ -117,7 +119,7 @@ public class PlayerRoll2 : MonoBehaviour
                 mRollCooldownTimer = 0f;
             }
         }
-
+        
         // During roll
         if (mPlayerMovement.GetState() == PlayerMovement2.State.Roll
             && mRollTimer > 0f)
@@ -171,21 +173,33 @@ public class PlayerRoll2 : MonoBehaviour
     {
         // Executing roll
         mPlayerMovement.SetState(PlayerMovement2.State.Roll);
-        Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+
+        Vector3 inputVector;
+        if (mRollSoftAdjustment)
+            inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+        else
+            inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)).normalized;
+
         mPlayerMovement.SetMovementVector(inputVector * mRollSpeed);
         mRollTimer += Time.fixedDeltaTime;
     }
 
     private void CheckCrash()
     {
-        // Setting up variables
-        int layerMask = 1 << 8; // 8: Player
+        //int layerMask = ~LayerMask.NameToLayer("Player");
 
         // If hitting something
-        if (Physics.Raycast(mCrashPos0 + transform.forward * mCrashRayMagnitudeSafeZone, Vector3.forward, out mCrashHit, mCrashRayMagnitude - mCrashRayMagnitudeSafeZone, layerMask))
+        if (Physics.Raycast(
+            mCrashPos0 + transform.forward * mCrashRayMagnitudeSafeZone, 
+            transform.forward, 
+            out mCrashHit, 
+            mCrashRayMagnitude - mCrashRayMagnitudeSafeZone, 
+            mCrashLayer))
         {
+            print("HIT NORMAL: " + mCrashHit.normal);
+            print("Angle between: " + Vector3.Angle(-transform.forward, mCrashHit.normal));
             // If normal is within crashing angle
-            if (Vector3.Angle(mCrashHit.normal, -transform.forward) >= mCrashAngleLimit)
+            if (Vector3.Angle(mCrashHit.normal, -transform.forward) <= mCrashAngleLimit)
             {
                 // Resetting variables
                 mRollTimer = 0f;
@@ -196,6 +210,8 @@ public class PlayerRoll2 : MonoBehaviour
                 // Debug
                 if (mIsDebuggingRoll)
                 {
+                    print("RAYCAST HIT: \t" + mCrashHit.transform.gameObject.name);
+                    print("RAYCAST ANGLE: \t" + mCrashHit.normal);
                     print("AUTO TRANSITION: \t ROLL \t -> \t STUN. ");
                 }
             }
@@ -204,9 +220,15 @@ public class PlayerRoll2 : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = mDebugColor;            
+        Gizmos.color = mDebugColor;
+
+        mCrashPos0 =
+            transform.position
+            + new Vector3(0f, -mCharacterController.height / 2f + mCrashHeight, 0f)
+            + transform.forward * mCharacterController.radius;
+
         Gizmos.DrawLine(
             mCrashPos0 + transform.forward * mCrashRayMagnitudeSafeZone,
-            mCrashPos0 + transform.forward * (mCrashRayMagnitude - mCrashRayMagnitudeSafeZone));
+            mCrashPos0 + transform.forward * mCrashRayMagnitude);
     }
 }
