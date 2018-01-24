@@ -24,7 +24,9 @@ public class PlayerThrow2 : MonoBehaviour
 
     [Header("Cooldown")]
     [SerializeField]
-    [Tooltip("Cooldown resets upon releasing the right trigger. You can throw as fast as you can spam the right trigger. ")]
+    private float mThrowCooldown = 1f;
+    private float mThrowCooldownTimer = 0f;
+    [Tooltip("One throw per RT button-down. ")]
     private bool mCooldown = false;
 
     [Header("Physics")]
@@ -40,6 +42,8 @@ public class PlayerThrow2 : MonoBehaviour
     private Transform mFreeThrowSpawn = null;
     [SerializeField]
     private Transform mFreeThrowFocus = null;
+    [SerializeField]
+    private SpriteRenderer mReticle = null;
     [SerializeField]
     private PlayerMovement2 mPlayerMovement = null;
     [SerializeField]
@@ -86,6 +90,10 @@ public class PlayerThrow2 : MonoBehaviour
                 .GetChild(1).transform
                 .GetChild(0).transform;
 
+        if (mReticle == null)
+            mReticle = mAimedThrowSpawn.GetComponent<SpriteRenderer>();
+        mReticle.enabled = false;
+
         if (mProjectileParent == null)
             mProjectileParent = GameObject.Find("Projectiles").transform;
 
@@ -101,15 +109,24 @@ public class PlayerThrow2 : MonoBehaviour
 
 	private void Update ()
 	{
-        // Cooldown
+        // Per-trigger cooldown
         if (mCooldown)
             if (mInputManager.GetTriggers().y == 0f)
                 mCooldown = false;
 
+        // Global cooldown
+        if (mThrowCooldownTimer > 0f)
+        {
+            mThrowCooldownTimer += Time.deltaTime;
+            if (mThrowCooldownTimer >= mThrowCooldown)
+            {
+                mThrowCooldownTimer = 0f;
+            }
+        }
+
         // Sending signals
         if (mInputManager.GetTriggers().x != 0f)
         {
-
             // Walk-to-throw
             if (mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
             {
@@ -127,6 +144,10 @@ public class PlayerThrow2 : MonoBehaviour
                 // Enabling aim camera, disabling standard camera
                 mCameraStandard.Priority = 1;
                 mCameraAim.Priority = 10;
+
+                // Enabling reticle
+                mReticle.enabled = true;
+
                 // Prevent standard camera from drifting when changing between cameras
                 mCameraStandard.m_XAxis.m_InputAxisValue = 0f;
 
@@ -142,7 +163,8 @@ public class PlayerThrow2 : MonoBehaviour
             {
                 if (
                     mPlayerMovement.GetState() == PlayerMovement2.State.Throw 
-                    && mInputManager.GetTriggers().y != 0f)
+                    && mInputManager.GetTriggers().y != 0f
+                    && mThrowCooldownTimer == 0f)
                 {
                     // Debug
                     if (mIsDebuggingThrow)
@@ -156,6 +178,9 @@ public class PlayerThrow2 : MonoBehaviour
                         .normalized
                         * mThrowStrength,
                         true);
+
+                    // Cooldown start
+                    mThrowCooldownTimer += Time.deltaTime;
                 }
             }
         }
@@ -173,11 +198,14 @@ public class PlayerThrow2 : MonoBehaviour
                 mPlayerMovement.SetState(PlayerMovement2.State.Walk);
 
                 // Movement
-                mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);
+                mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);   // might fix later
 
                 // Enabling standard camera, disabling aim camera
                 mCameraStandard.Priority = 10;
                 mCameraAim.Priority = 1;
+
+                // Enabling reticle
+                mReticle.enabled = false;
 
                 // Debug
                 if (mIsDebuggingThrow)
@@ -192,7 +220,8 @@ public class PlayerThrow2 : MonoBehaviour
                 if (
                     (mPlayerMovement.GetState() == PlayerMovement2.State.Walk
                     || mPlayerMovement.GetState() == PlayerMovement2.State.Air)
-                    && mInputManager.GetTriggers().y != 0f)
+                    && mInputManager.GetTriggers().y != 0f
+                    && mThrowCooldownTimer == 0f)
                 {
                     Throw(
                         mFreeThrowSpawn.position,
@@ -200,6 +229,9 @@ public class PlayerThrow2 : MonoBehaviour
                         .normalized
                         * mThrowStrength,
                         true);
+
+                    // Cooldown start
+                    mThrowCooldownTimer += Time.deltaTime;
                 }
             }
         }
