@@ -7,9 +7,10 @@ public class EnemyHedgehog : MonoBehaviour {
 
     #region Stances
 
-    protected enum TypeOfStances
+    public enum TypeOfStances
     {
         Idle,
+        Scared,
         Searching,
         Following,
         Screaming,
@@ -21,7 +22,12 @@ public class EnemyHedgehog : MonoBehaviour {
     /// <summary>
     /// Current active stance, this will tell you if you're idle, following a target or attacking.
     /// </summary>
-    protected TypeOfStances mCurrentStance = TypeOfStances.Idle;
+    private TypeOfStances mCurrentStance = TypeOfStances.Idle;
+
+    public TypeOfStances GetCurrentStance() {   return mCurrentStance; }
+
+    public void SetCurrentStance(TypeOfStances newStance) { mCurrentStance = newStance; }
+
     #endregion
 
     #region Data - constants
@@ -123,6 +129,10 @@ public class EnemyHedgehog : MonoBehaviour {
         {
             Actions_Idle();
         }
+        else if (mCurrentStance == TypeOfStances.Scared)
+        {
+            Actions_Scared();
+        }
         else if (mCurrentStance == TypeOfStances.Following)
         {
             Actions_Following();
@@ -163,6 +173,39 @@ public class EnemyHedgehog : MonoBehaviour {
         mNavMeshAgent.SetDestination(mLastPosition);
     }
 
+    #endregion
+
+    #region Scared
+
+    bool gotScared = false;
+    float timeUntilRunScared = 2f;
+    private void Actions_Scared()
+    {
+        if (!gotScared)
+        {
+            mAnimations.Animation_GotHit();
+            mNavMeshAgent.SetDestination(transform.position + (transform.forward * 30f));
+            mNavMeshAgent.speed = 0f;
+            timeUntilRunScared = 1f;
+            gotScared = true;
+        }
+        else if (timeUntilRunScared > 0f)
+        {
+            timeUntilRunScared -= 1 * Time.deltaTime;
+        }
+        else
+        {
+            mNavMeshAgent.speed = mSprintingSpeed;
+        }
+    }
+
+    public void AnimationEvent_SetStateBackToIdle()
+    {
+        mCurrentStance = TypeOfStances.Idle;
+        gotScared = false;
+        mLastPosition = transform.position;
+        mNavMeshAgent.speed = mNormalSpeed;
+    }
     #endregion
 
     #region Following
@@ -324,22 +367,7 @@ public class EnemyHedgehog : MonoBehaviour {
 
     #endregion
 
-    #region Getting hit
 
-    public void GetHit()
-    {
-        if (mCurrentStance == TypeOfStances.Sprinting)
-        {
-            mCurrentStance = TypeOfStances.ChargingUp;
-        }
-        else
-        {
-            mCurrentStance = TypeOfStances.ChargingUp;
-            mAnimations.Animation_GotHit();
-        }
-    }
-
-#endregion
 
     #region Gizmos
     [Header("Gizmos")]

@@ -73,7 +73,10 @@ public class EnemyHeadhogMother : Actor {
 
     #endregion
 
+
+
     #region Frost-breath
+
 
     /// <summary>
     /// Used to turn on and off the ground particles during the breath (damage zones).
@@ -126,6 +129,9 @@ public class EnemyHeadhogMother : Actor {
     [SerializeField]
     private GameObject Breath_visualsPLH = null;
 
+    [SerializeField]
+    private Transform eyeJointTransform = null;
+
     private void Breath_Recharge()
     {
         motherAnimator.StartBreath();
@@ -163,12 +169,12 @@ public class EnemyHeadhogMother : Actor {
 
             float distanceFromObjectHit = -5f;
 
-            startPos = mHeadTransform.position + transform.forward * spreadSizeForRays;
+            startPos = mHeadTransform.position + transform.right * spreadSizeForRays;
 
 
-            Debug.DrawRay(startPos, -mHeadTransform.right * 500f, Color.red);
+            Debug.DrawRay(startPos, mHeadTransform.forward * 500f, Color.red);
 
-            if (Physics.Raycast(startPos, -mHeadTransform.right, out breathHit, Mathf.Infinity))
+            if (Physics.Raycast(startPos, mHeadTransform.forward, out breathHit, Mathf.Infinity))
             {
               distanceFromObjectHit = breathHit.distance;
 
@@ -319,23 +325,23 @@ public class EnemyHeadhogMother : Actor {
         {
             if (i == 0)
             {
-                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(0).gameObject;
             }
             else if (i == 1)
             {
-                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
-                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(1).gameObject;
-                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(2).gameObject;
+                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(0).gameObject;
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(1).gameObject;
+                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(2).gameObject;
             }
             else
             {
-                GroundParticles_NegativeOuter[i-2] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
-                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(1).gameObject;
+                GroundParticles_NegativeOuter[i-2] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(0).gameObject;
+                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(1).gameObject;
 
-                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(2).gameObject;
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(2).gameObject;
 
-                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(3).gameObject;
-                GroundParticles_PositiveOuter[i-2] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(4).gameObject;
+                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(3).gameObject;
+                GroundParticles_PositiveOuter[i-2] = Breath_visualsPLH.transform.transform.GetChild(i).transform.GetChild(4).gameObject;
             }
         }
     }
@@ -369,6 +375,15 @@ public class EnemyHeadhogMother : Actor {
 
         if (breathIsBeingUsed)
             Breath_CheckForLenght();
+
+
+        if (Breath_visualsPLH.activeSelf)
+        {
+            mHeadTransform.position = new Vector3(eyeJointTransform.position.x, mHeadTransform.position.y, eyeJointTransform.position.z);
+
+            mHeadTransform.rotation = new Quaternion(mHeadTransform.rotation.x, eyeJointTransform.rotation.y, mHeadTransform.rotation.z, mHeadTransform.rotation.w);
+            
+        }
     }
 
 

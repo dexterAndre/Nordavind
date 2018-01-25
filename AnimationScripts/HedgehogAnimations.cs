@@ -31,4 +31,5 @@ public class HedgehogAnimations : MonoBehaviour {
         mAnimator.SetTrigger("gotHit");
     }
 
+
 }
