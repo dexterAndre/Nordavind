@@ -4,6 +4,19 @@ using UnityEngine;
 
 public class EnemyHeadhogMother : Actor {
 
+    #region
+    private enum TypeOfStance
+    {
+        Idle,
+        Spawning,
+        Breathing,
+        TakingDamage
+    }
+
+    private TypeOfStance mTypeOfStance = TypeOfStance.Idle;
+
+#endregion
+
 
     #region Spawning of Hedgehogs
 
@@ -67,7 +80,17 @@ public class EnemyHeadhogMother : Actor {
     /// </summary>
     [Header("Breath")]
     [SerializeField]
-    private GameObject[] GroundParticles = new GameObject[40];
+    private GameObject[] GroundParticles_NegativeOuter = new GameObject[28];
+    [SerializeField]
+    private GameObject[] GroundParticles_NegativeInner = new GameObject[29];
+    [SerializeField]
+    private GameObject[] GroundParticles_Center = new GameObject[30];
+    [SerializeField]
+    private GameObject[] GroundParticles_PositiveInner = new GameObject[29];
+    [SerializeField]
+    private GameObject[] GroundParticles_PositiveOuter = new GameObject[28];
+    private Transform BreathImpactLocation = null;
+
 
     /// <summary>
     /// Get a refrence to the transform of the where the breath is spawned.
@@ -82,7 +105,7 @@ public class EnemyHeadhogMother : Actor {
     /// <summary>
     /// Used to find the best way of spreading the raycast used to register the lenght of ground particles.
     /// </summary>
-    private float spreadSizeForRays = 3f;
+    private float spreadSizeForRays = -5f;
 
     /// <summary>
     /// The particle effect spawned once the breath hit an object.
@@ -105,19 +128,16 @@ public class EnemyHeadhogMother : Actor {
 
     private void Breath_Recharge()
     {
-        StartCoroutine(Breath_Start());
         motherAnimator.StartBreath();
 
     }
 
-    //------SHOULD BE REWRITTEN TO ANIMATION EVENT------
     /// <summary>
     /// This function will enable the breath visuals.
     /// </summary>
     /// <returns></returns>
-    private IEnumerator Breath_Start()
+    public void Breath_EnableVisuals()
     {
-        yield return new WaitForSeconds(7f);
         Breath_visualsPLH.SetActive(true);
         breathIsBeingUsed = true;
     }
@@ -136,47 +156,39 @@ public class EnemyHeadhogMother : Actor {
     /// </summary>
     private void Breath_CheckForLenght()
     {
-        float distanceFromObjectHit = 0f;
-        RaycastHit breathFurthesHit = new RaycastHit();
-
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 5; i++)
         {
             RaycastHit breathHit = new RaycastHit();
             Vector3 startPos = Vector3.zero;
 
-            if (i == 0)
-                startPos = mHeadTransform.position + (mHeadTransform.forward * spreadSizeForRays);
-            else if (i == 1)
-                startPos = mHeadTransform.position;
-            else if (i == 2)
-                startPos = mHeadTransform.position - (mHeadTransform.forward * spreadSizeForRays);
+            float distanceFromObjectHit = -5f;
 
-            startPos += Vector3.up * 3;
+            startPos = mHeadTransform.position + transform.forward * spreadSizeForRays;
+
+
+            Debug.DrawRay(startPos, -mHeadTransform.right * 500f, Color.red);
 
             if (Physics.Raycast(startPos, -mHeadTransform.right, out breathHit, Mathf.Infinity))
             {
+              distanceFromObjectHit = breathHit.distance;
 
-                if (i == 0 || distanceFromObjectHit > breathHit.distance)
+                if (Breath_visualsPLH.activeSelf)
                 {
-                    distanceFromObjectHit = breathHit.distance;
+                    BreathImpactLocation.position = breathHit.point - transform.forward * 10f - transform.right * 3f;
+                    BreathImpactLocation.LookAt(BreathImpactLocation.position + breathHit.normal);
                 }
-                if (i == 2)
-                    breathFurthesHit = breathHit;
             }
-        }
-        if (Breath_visualsPLH.activeSelf)
-        {
-            GameObject SnowExplosionAtEnd = Instantiate(prefabForBreathHit, breathFurthesHit.point - (Vector3.forward * 3f), Quaternion.identity, null);
-            SnowExplosionAtEnd.transform.LookAt(SnowExplosionAtEnd.transform.position + breathFurthesHit.normal);
-            Destroy(SnowExplosionAtEnd, 2f);
-        }
+            
 
-        if (distanceFromObjectHit < 20f)
-            print(distanceFromObjectHit + " is the distance.");
-        if (distanceFromObjectHit != 0)
-            Breath_SetAmountOfGroundParticles(distanceFromObjectHit);
-        else
-            Breath_SetAmountOfGroundParticles(500000f);
+            if (distanceFromObjectHit != 0)
+                Breath_SetAmountOfGroundParticles(distanceFromObjectHit, i-2);
+            else
+                Breath_SetAmountOfGroundParticles(500000f, i-2);
+
+
+            spreadSizeForRays += 2.5f;
+        }
+        spreadSizeForRays = -5f;
 
     }
 
@@ -184,19 +196,81 @@ public class EnemyHeadhogMother : Actor {
     /// This checks the distance from the raycastpoints in the Breath_CheckForLenght() - function, and enable/disable ground effects accordingly.
     /// </summary>
     /// <param name="distanceFromHead"></param>
-    private void Breath_SetAmountOfGroundParticles(float distanceFromHead)
+    private void Breath_SetAmountOfGroundParticles(float distanceFromHead, int rayIndex)
     {
-        float amountProccessed = 10f;
+        float amountProccessed = 5f;
 
-        for (int i = 0; i < 40; i++)
+        if (rayIndex == -2)
         {
-            if (distanceFromHead > amountProccessed)
+            amountProccessed = 15f;
+            for (int i = 0; i < GroundParticles_NegativeOuter.Length; i++)
             {
-                GroundParticles[i].SetActive(true);
-                amountProccessed += 4.9f;
+                if (distanceFromHead > amountProccessed)
+                {
+                    GroundParticles_NegativeOuter[i].SetActive(true);
+                    amountProccessed += 5f;
+                }
+                else
+                    GroundParticles_NegativeOuter[i].SetActive(false);
             }
-            else
-                GroundParticles[i].SetActive(false);
+        }
+        else if (rayIndex == -1)
+        {
+            amountProccessed = 10f;
+            for (int i = 0; i < GroundParticles_NegativeInner.Length; i++)
+            {
+                if (distanceFromHead > amountProccessed)
+                {
+                    GroundParticles_NegativeInner[i].SetActive(true);
+                    amountProccessed += 5f;
+                }
+                else
+                    GroundParticles_NegativeInner[i].SetActive(false);
+            }
+        }
+        else if (rayIndex == 0)
+        {
+            amountProccessed = 5f;
+            for (int i = 0; i < GroundParticles_Center.Length; i++)
+            {
+                if (distanceFromHead > amountProccessed)
+                {
+                    GroundParticles_Center[i].SetActive(true);
+                    amountProccessed += 5f;
+                }
+                else
+                    GroundParticles_Center[i].SetActive(false);
+            }
+        }
+        else if (rayIndex == 1)
+        {
+            amountProccessed = 10f;
+            for (int i = 0; i < GroundParticles_PositiveInner.Length; i++)
+            {
+                if (distanceFromHead > amountProccessed)
+                {
+                    GroundParticles_PositiveInner[i].SetActive(true);
+                    amountProccessed += 5f;
+                }
+                else
+                    GroundParticles_PositiveInner[i].SetActive(false);
+            }
+        }
+        else if (rayIndex == 2)
+        {
+            amountProccessed = 15f;
+            for (int i = 0; i < GroundParticles_PositiveOuter.Length; i++)
+            {
+                if (distanceFromHead > amountProccessed)
+                {
+                    GroundParticles_PositiveOuter[i].SetActive(true);
+                    amountProccessed += 5f;
+                }
+                else
+                    GroundParticles_PositiveOuter[i].SetActive(false);
+            }
+
+
         }
     }
 
@@ -237,19 +311,39 @@ public class EnemyHeadhogMother : Actor {
 
     private void Start()
     {
-        motherAnimator = GetComponent<SnowballerMotherAnimations>();
+        motherAnimator = transform.GetChild(0).GetComponent<SnowballerMotherAnimations>();
         Health_SetStandardHealth(mStartingHealth);
         GetActorComponents();
 
-        for (int i = 1; i < 41; i++)
+        for (int i = 0; i < 30; i++)
         {
-            GroundParticles[i - 1] = transform.GetChild(1).transform.GetChild(0).transform.GetChild(0).transform.GetChild(i).gameObject;
+            if (i == 0)
+            {
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
+            }
+            else if (i == 1)
+            {
+                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(1).gameObject;
+                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(2).gameObject;
+            }
+            else
+            {
+                GroundParticles_NegativeOuter[i-2] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(0).gameObject;
+                GroundParticles_NegativeInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(1).gameObject;
+
+                GroundParticles_Center[i] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(2).gameObject;
+
+                GroundParticles_PositiveInner[i-1] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(3).gameObject;
+                GroundParticles_PositiveOuter[i-2] = Breath_visualsPLH.transform.GetChild(0).transform.GetChild(i).transform.GetChild(4).gameObject;
+            }
         }
     }
 
     private void Awake()
     {
-        mHeadTransform = transform.GetChild(1).transform.GetChild(0).transform.GetChild(0).GetComponent<Transform>();
+        mHeadTransform = transform.GetChild(1).transform.GetChild(0).GetComponent<Transform>();
+        BreathImpactLocation = mHeadTransform.GetChild(0).transform.GetChild(31);
 
         for (int i = 0; i < 3; i++)
         {

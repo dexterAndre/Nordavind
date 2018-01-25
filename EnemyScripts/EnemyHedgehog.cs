@@ -28,6 +28,8 @@ public class EnemyHedgehog : MonoBehaviour {
 
     private NavMeshAgent mNavMeshAgent = null;
 
+    private HedgehogAnimations mAnimations = null;
+
     [Header("Data - constants")]
     [SerializeField]
     private float mDetectionRange = 100f;
@@ -188,34 +190,40 @@ public class EnemyHedgehog : MonoBehaviour {
 
     [Header("Scream")]
     [SerializeField]
-    private float durationOfScream = 1f;
+    private float durationOfScream = 2f;
 
+    private bool screamStarted = false;
 
     /// <summary>
     /// What happens during the screaming state.
     /// </summary>
     private void Actions_Screaming()
     {
-        mNavMeshAgent.SetDestination(transform.position);
+        if (!screamStarted)
+        {
+            mAnimations.Animation_StartScream();
+            mNavMeshAgent.SetDestination(transform.position);
+            screamStarted = true;
+        }        
 
         if (durationOfScream >= 0f)
         {
-            transform.localScale = new Vector3(2, 2, 2);
             durationOfScream -= Time.deltaTime;
         }
         else
         {
             if (TargetInSight())
             {
-                transform.localScale = new Vector3(1, 1, 1);
+                mAnimations.Animation_SetSprintState(true);
                 mCurrentStance = TypeOfStances.Sprinting;
             }
                
             else
             {
                 mCurrentStance = TypeOfStances.Idle;
-                transform.localScale = new Vector3(1, 1, 1);
+                mAnimations.Animation_SetSprintState(false);
                 durationOfScream = 1f;
+                screamStarted = false;
             }
         }
 
@@ -235,7 +243,10 @@ public class EnemyHedgehog : MonoBehaviour {
         mNavMeshAgent.SetDestination(mTargetToFollow.position);
 
         if (mNavMeshAgent.speed != mSprintingSpeed)
+        {
             mNavMeshAgent.speed = mSprintingSpeed;
+        }
+            
 
 
     }
@@ -259,8 +270,8 @@ public class EnemyHedgehog : MonoBehaviour {
         transform.LookAt(new Vector3(mTargetToFollow.position.x, transform.position.y, mTargetToFollow.position.z));
         if (mNavMeshAgent.speed != chargingUpSpeed) {
             mNavMeshAgent.acceleration = 100f;
-            transform.localScale = new Vector3(3, 3, 3);
-            mNavMeshAgent.speed = chargingUpSpeed;
+            mNavMeshAgent.speed = 0f;
+            mAnimations.Animation_InRange();
         }
             
 
@@ -271,7 +282,6 @@ public class EnemyHedgehog : MonoBehaviour {
         else
         {
             mCurrentStance = TypeOfStances.Exploding;
-            transform.localScale = new Vector3(1, 1, 1);
         }
     }
 
@@ -314,21 +324,49 @@ public class EnemyHedgehog : MonoBehaviour {
 
     #endregion
 
+    #region Getting hit
+
+    public void GetHit()
+    {
+        if (mCurrentStance == TypeOfStances.Sprinting)
+        {
+            mCurrentStance = TypeOfStances.ChargingUp;
+        }
+        else
+        {
+            mCurrentStance = TypeOfStances.ChargingUp;
+            mAnimations.Animation_GotHit();
+        }
+    }
+
+#endregion
+
     #region Gizmos
+    [Header("Gizmos")]
+    [SerializeField]
+    private bool ShouldGizmosBeDrawn = true;
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, mDetectionRange);
+        if (ShouldGizmosBeDrawn)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.2f);
+            Gizmos.DrawSphere(transform.position, mDetectionRange);
 
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, mSprintingRange);
+            Gizmos.color = Color.blue;
+            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.2f);
+            Gizmos.DrawSphere(transform.position, mSprintingRange);
 
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, mSelfDestructRange);
+            Gizmos.color = Color.green;
+            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.5f);
+            Gizmos.DrawWireSphere(transform.position, mSelfDestructRange);
 
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, damageZoneRadius);
+            Gizmos.color = Color.red;
+            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.3f);
+            Gizmos.DrawWireSphere(transform.position, damageZoneRadius);
+        }
     }
+
     #endregion
 
 
@@ -336,6 +374,7 @@ public class EnemyHedgehog : MonoBehaviour {
     {
         mNavMeshAgent = GetComponent<NavMeshAgent>();
         mLastPosition = transform.position;
+        mAnimations = transform.GetChild(0).GetComponent<HedgehogAnimations>();
     }
 
     private void Update()

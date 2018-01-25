@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class PlayerAnimations : HeadAnimatorBehavior
 {
-
-    private PlayerStateMachine mPlayerStateMachine = null;
     private PlayerMovement mPlayerMovement = null;
+
+    private InputManager mInputManager = null;
 
     private bool hasJumped = false;
 
@@ -14,7 +14,7 @@ public class PlayerAnimations : HeadAnimatorBehavior
     #region Animator set-animationstates
     private void Animation_SetMovement()
     {
-            mAnimator.SetFloat("Speed", mPlayerMovement.GetMovementSpeed());
+            mAnimator.SetFloat("Speed", mPlayerMovement.GetWalkSpeedNormalized());
     }
 
     private void Animation_SetJump()
@@ -34,36 +34,50 @@ public class PlayerAnimations : HeadAnimatorBehavior
     }
     #endregion
 
-
-
+    private bool rollUsed = false;
+    private bool throwUsed = false;
 
     void Start()
     {
         GetHeadAnimtorComponents();
-        mPlayerStateMachine = transform.parent.GetComponent<PlayerStateMachine>();
         mPlayerMovement = transform.parent.GetComponent<PlayerMovement>();
+        mInputManager = GameObject.Find("Managers").transform.GetChild(0).GetComponent<InputManager>();
     }
 
     private void Update()
     {
         
-        if (mPlayerMovement.GetGroundedState())
+        if (mPlayerMovement.GetState() == PlayerMovement.State.Walk)
         {
             Animation_SetMovement();
-            
+          
         }
 
-        if (Input.GetButtonDown("Fire2"))
+
+        if (!rollUsed && mPlayerMovement.GetState() == PlayerMovement.State.Roll)
         {
             mAnimator.SetTrigger("Roll");
+            rollUsed = true;
+        }
+        else if (rollUsed && mPlayerMovement.GetState() != PlayerMovement.State.Roll)
+        {
+            rollUsed = false;
         }
             
 
-        if (Input.GetButtonDown("Fire3"))
+        if (mInputManager.GetTriggers().y != 0f && !throwUsed)
         {
+            StartCoroutine(ThrowCooldown());
             AnimationLayer_SwitchWeightForScarf();
-            Animation_ThrowSnowball();  
+            Animation_ThrowSnowball();
+            throwUsed = true;
         }
 
+    }
+
+    private IEnumerator ThrowCooldown()
+    {
+        yield return new WaitForSeconds(0.5f);
+        throwUsed = false;
     }
 }

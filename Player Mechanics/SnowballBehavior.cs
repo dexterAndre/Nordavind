@@ -4,19 +4,25 @@ using System.Collections;
 [RequireComponent(typeof(Rigidbody))]
 public class SnowballBehavior : MonoBehaviour
 {
-    private void Update()
-    {
-        Vector3 mVelocity = GetComponent<Rigidbody>().velocity;
-        GetComponent<Rigidbody>().velocity = new Vector3(mVelocity.x, mVelocity.y-1f, mVelocity.z);
+    [SerializeField]
+    private GameObject prefabForSnowballHit = null;
 
-        RaycastHit snowballHit;
-        if (Physics.Raycast(transform.position, transform.forward, out snowballHit, 2f))
+    private void OnTriggerEnter(Collider collision)
+	{
+        //print("Hit ON_COLLISION_ENTER!");
+        if (collision.gameObject.GetComponent<EnemyHedgehog>() != null)
         {
-            GetComponent<Rigidbody>().velocity = new Vector3(0, 0, 0);
-            transform.GetChild(0).gameObject.SetActive(false);
-            Destroy(gameObject, 1f);
+            collision.gameObject.GetComponent<EnemyHedgehog>().GetHit();
         }
+        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
+        Destroy(snowballhitParticle, 1f);
+        Destroy(gameObject);
+	}
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
+        Destroy(snowballhitParticle, 1f);
+        Destroy(gameObject);
     }
-
-
 }

@@ -1,306 +1,493 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-[RequireComponent(typeof(PlayerStateMachine), typeof(CharacterController))]
+[RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-	/* 
-	To-do list: 
-	- Make jump lean more forward rather than up. 
-	- Stop before jumping. 
-	*/
+    /*
+        General (all scripts) to do: 
+        - Use properties instead of getters and setters
+        - Use UnityEvent and Delegates
+        - Remove [SerializeField] on #region References code. Not interesting. 
+        - Add god descriptions for all functions. "/// summary"
+        - Remove old versions of gamepay scripts, rename "GameplayScript2" with "GameplayScript". 
+    */
 
-	[Header("Walk")]
-	[SerializeField]
-	private float mWalkSpeed = 5f;
-	[HideInInspector]
-	public Vector3 mMovementVector;
-	private Quaternion mCameraDirection;
-	[SerializeField]
-	[Range(0f, 1f)]
-	private float mRotationSpeed = 0.3f;
-    private Vector3 mRollVector;
+    /*
+        To do: 
+        - Delete unused getter / setter functions
+    */
 
-	[Header("Gravity")]
-	[SerializeField]
-	private float mGravityScale = 1f;
-	private float mAirTimer = 0f;
-	public void ResetAirTimer() { mAirTimer = 0f; }
-	private float mVerticalMovement = 0f;
-	public bool mIsGrounded;
+    #region State
+    public enum State
+    {
+        Walk,
+        Jump,
+        JumpDelay,
+        Air,
+        Hang,
+        Balance,
+        Roll,
+        RollDelay,
+        Stun,
+        StunRecover,
+        Throw,
+        Slide
+    };
+    [Header("State")]
+    [SerializeField]
+    private State mState = State.Walk;
+    public State GetState() { return mState; }
+    public void SetState(State state) { mState = state; }
+    #endregion
+    #region Walk
+    [Header("Walking")]
+    [SerializeField]
+    private float mWalkSpeed = 7.5f;
+    public float GetWalkSpeed() { return mWalkSpeed; }
+    public float GetWalkSpeedNormalized()
+    {
+        return PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)).magnitude;
+    }
+    public void SetWalkSpeed(float walkSpeed) { mWalkSpeed = walkSpeed; }
+    [SerializeField]
+    private float mAirInfluence = 0.5f;
+    public float GetAirInfluence() { return mAirInfluence; }
+    public void SetAirInfluence(float airInfluence) { mAirInfluence = airInfluence; }
+    private Vector3 mMovementVector = Vector3.zero;
+    public Vector3 GetMovementVector() { return mMovementVector; }
+    public void SetMovementVector(Vector3 vector) { mMovementVector = vector; }
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float mRotationSpeed = 0.3f;
+    #endregion
+    #region Stun
+    [Header("Stun")]
+    [SerializeField]
+    private float mStunDuration = 0.5f;
+    private float mStunDurationSpecific = 0f;
+    public void SetStunDurationSpecific(float stunDuration) { mStunDurationSpecific = stunDuration; }
+    [SerializeField]
+    private float mStunFalloffMultiplier = 5f;
+    private float mStunTimer = 0f;
+    [SerializeField]
+    [Tooltip("Time to get back up on your feet after stun. ")]
+    private float mStunRecoveryDuration = 0.25f;
+    private float mStunRecoveryTimer = 0f;
+    [SerializeField]
+    private float mStunSpeedInitial = 20f;
+    #endregion
+    #region Gravity
+    [SerializeField]
+    private float mGravityScale = 1f;
+    private Vector3 mVerticalMovement;
+    public Vector3 GetVerticalMovement() { return mVerticalMovement; }
+    public void SetVerticalMovement(Vector3 verticalMovement) { mVerticalMovement = verticalMovement; }
+    #endregion
+    #region Jump
+    private float mJumpTimer = 0f;
+    public void SetJumpTimer(float jumpTimer) { mJumpTimer = jumpTimer; }
+    private Vector3 mJumpVector;
+    public Vector3 GetJumpVector() { return mJumpVector; }
+    public void SetJumpVector(Vector3 jumpVector) { mJumpVector = jumpVector; }
+    #endregion
+    #region Hang
+    private bool mCanHang = true; // is set to false if dropping down (or after set amount of time). Resets when hitting ground. 
+    #endregion
+    #region References
+    [Header("References")]
+    [SerializeField]
+    private InputManager mInputManager = null;
+    [SerializeField]
+    private CharacterController mCharacterController = null;
+    #endregion
+    #region Debug
+    #region Movement
+    [Header("Debug")]
+    [SerializeField]
+    private bool mIsDebuggingMovement = true;
+    //[SerializeField]
+    //private Vector3 mDebugMovementOffset = new Vector3(0f, 2f, 0f);
+    //[SerializeField]
+    //private Color mDebugMovementColor = Color.red;
+    #endregion
+    //[Space(10)]
+    #region Hanging
+    //[SerializeField]
+    //private bool mIsDebuggingHanging = true;
+    //[SerializeField]
+    //private Vector3 mDebugHangingOffset = new Vector3(0f, 2f, 0f);
+    //[SerializeField]
+    //private Color mDebugHangingColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 1f);
+    #endregion
+    #region Sliding
+    #endregion
+    #endregion
 
-	[Header("Jump")]
-	[SerializeField]
-	private float mJumpStrength = 10f;
 
-	[Header("Hang")]
-	[SerializeField]
-	private float mHangHeightHigh = 2f;
-	[SerializeField]
-	private float mHangHeightLow = 1f;
-	[SerializeField]
-	private float mHangDelta = 0.25f;
-	[SerializeField]
-	private float mHangBottom = 1f;
-	[SerializeField]
-	private float mHangMagnitude = 0.5f;
-	private RaycastHit mHangRaycastHigh;
-	private RaycastHit mHangRaycastLow;
-	private RaycastHit mHangRaycastDown;
-	private Vector3 mHangLimitHigh = Vector3.zero;
-    private Vector3 mHangLimitLow = Vector3.zero;
-    private Vector3 mHangTop = Vector3.zero;
-    private Vector3 mHangWall = Vector3.zero;
-    private Vector3 mHangPlanarTW = Vector3.zero;
-    private Vector3 mHangPoint = Vector3.zero;
-    private Vector3 mHangPointActually = Vector3.zero;
-    private Vector3 mHangDirection = Vector3.zero;
-    private Vector3 mHangDisplacement = Vector3.zero;
-    private Vector3 mHangDisplacementFinal = Vector3.zero;
-	[SerializeField]
-	private float mClimbAnimationDuration;
-	[SerializeField]
-	private float mHangDropSpeed = 1f;
 
-	[Header("Debug")]
-	[SerializeField]
-	private Vector3 mDebugOffset;
-	[SerializeField]
-	private Color mDebugColor = Color.red;
-
-	// References
-	private CharacterController mCharacterController = null;
-	private PlayerStateMachine mStateMachine = null;
-	private PlayerRoll mRoll = null;
-
-	private void Start ()
+    private void Awake ()
 	{
-		mCharacterController = GetComponent<CharacterController>();
-		mStateMachine = GetComponent<PlayerStateMachine>();
-		mRoll = GetComponent<PlayerRoll>();
-
-		mMovementVector = Vector3.zero;
-
-		mAirTimer = 0f;
-		mVerticalMovement = 0f;
+        if (mInputManager == null)
+            mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>(); // optimize this! 
+        if (mCharacterController == null)
+            mCharacterController = GetComponent<CharacterController>();
 	}
 
 	private void FixedUpdate ()
 	{
-		// Jump
-		if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Walk)
-		{
-			if (Input.GetButtonDown("Jump"))
-			{
-				mVerticalMovement = mJumpStrength;
-			}
-			else
-			{
-				mVerticalMovement = Physics.gravity.y;
-			}
-		}
-		// Airborne
-		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Air)
-		{
-			//// Check for hang
-			//if (mStateMachine.GetHangability())
-			//{
-			//	// If upper raycast hits nothing...
-			//	if (!Physics.Raycast(transform.position + mHangLimitHigh, transform.forward, out mHangRaycastHigh, mHangMagnitude))
-			//	{
-			//		// If inset raycast DOES hit something...
-			//		if (Physics.Raycast(transform.position + mHangLimitHigh + transform.forward * mHangMagnitude, Vector3.down, out mHangRaycastDown, mHangDelta))
-			//		{
-			//			InitiateHang();
-			//		}
-			//	}
-			//}
-			//// Check for balance
-			//else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Balance)
-			//{
-			//	// This doesn't trigger yet. 
-			//	// Remember to replace the condition when finished! 
-			//}
-			// Else, apply gravity
-			if (
-				mStateMachine.GetState() != PlayerStateMachine.PlayerState.Hang 
-				&& mStateMachine.GetState() != PlayerStateMachine.PlayerState.Balance)
-			{
-				mAirTimer += Time.fixedDeltaTime;
-				mVerticalMovement += Physics.gravity.y * mGravityScale * mAirTimer * mAirTimer;
-			}
-		}
+        #region Automatic State Detection
+        // Check if airborne
+        if (mState != State.Air
+            && !mCharacterController.isGrounded
+            && mState != State.Hang
+            && mState != State.Balance
+            && mState != State.Roll
+            && mState != State.RollDelay
+            && mState != State.Stun
+            && mState != State.StunRecover)
+        {
+            mState = State.Air;
 
-		// Planar movement while walking or airborne
-		if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Walk
-			|| mStateMachine.GetState() == PlayerStateMachine.PlayerState.Air)
-		{
-			// Calculating planar movement
-			mCameraDirection = Camera.main.transform.rotation;
-			mMovementVector = new Vector3(mStateMachine.GetInputStickL().x, 0f, mStateMachine.GetInputStickL().y);
-			mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up) * mWalkSpeed;
+            // Debug
+            if (mIsDebuggingMovement)
+            {
+                print("AUTO TRANSITION: \t ANY \t -> \t AIR. ");
+            }
+        }
 
-			// Applying rotation
-			transform.forward = Vector3.Slerp(transform.forward, mMovementVector.normalized, mRotationSpeed);
-			
-			// Calculating vertical movement
-			mMovementVector += new Vector3(0f, mVerticalMovement, 0f);
+        // Transitions
+        if (mState == State.Air)
+        {
+            // Check for hang
+            if (CheckHang())
+            {
 
-			// Applying movement
-			mCharacterController.Move(mMovementVector * Time.deltaTime);
-		}
-		// Roll
-		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Roll)
-		{
-            mMovementVector = mRollVector + new Vector3(0f, -9.81f, 0f);
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t HANG. ");
+                }
+            }
+            // Check for balance
+            if (CheckBalance())
+            {
 
-			// Applying movement
-			mCharacterController.Move(mMovementVector * Time.deltaTime);
-		}
-		// Hang
-		else if (mStateMachine.GetState() == PlayerStateMachine.PlayerState.Hang)
-		{
-			transform.position = mHangPointActually;
-			transform.rotation = Quaternion.LookRotation(mHangDirection);
-		}
-		// Slide
-		// Balance
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t BALANCE. ");
+                }
+            }
+
+            // Jump vector
+            if (mJumpVector != Vector3.zero)
+            {
+                mJumpTimer += Time.fixedDeltaTime;
+            }
+
+            // Check for grounded
+            if (mState == State.Air
+                && mCharacterController.isGrounded)
+            {
+                mState = State.Walk;
+                mVerticalMovement = Vector3.zero;
+                mJumpVector = Vector3.zero;
+                mJumpTimer = 0f;
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t AIR \t -> \t WALK. ");
+                }
+            }
+            else
+            {
+                // Else apply gravity
+                mVerticalMovement += Physics.gravity * mGravityScale * Time.fixedDeltaTime;
+            }
+        }
+        else if (mState == State.Stun)
+        {
+            // Timer
+            mStunTimer += Time.fixedDeltaTime;
+            if (mStunDurationSpecific == 0f)
+            {
+                // Standard stun
+                if (mStunTimer >= mStunDuration)
+                {
+                    mStunTimer = 0f;
+                    mState = State.StunRecover;
+
+                    // Debug
+                    if (mIsDebuggingMovement)
+                    {
+                        print("AUTO TRANSITION: \t STUN \t -> \t STUN R. ");
+                    }
+                }
+            }
+            else
+            {
+                // Specific stun
+                if (mStunTimer >= mStunDurationSpecific)
+                {
+                    mStunTimer = 0f;
+                    mStunDurationSpecific = 0f;
+                    mState = State.StunRecover;
+
+                    // Debug
+                    if (mIsDebuggingMovement)
+                    {
+                        print("AUTO TRANSITION: \t STUN \t -> \t STUN R. ");
+                    }
+                }
+            }
+        }
+        else if (mState == State.StunRecover)
+        {
+            // Timer
+            mStunRecoveryTimer += Time.fixedDeltaTime;
+            if (mStunRecoveryTimer >= mStunRecoveryDuration)
+            {
+                mStunRecoveryTimer = 0f;
+                mState = State.Walk;
+
+                // Debug
+                if (mIsDebuggingMovement)
+                {
+                    print("AUTO TRANSITION: \t STUN R \t -> \t WALK. ");
+                }
+            }
+        }
+        #endregion
+
+        Movement(mState);
 	}
 
-	public void Reset()
-	{
-		transform.position = new Vector3(0f, 2f, 0f);
-		ResetAirTimer();
-		mStateMachine.SetState(PlayerStateMachine.PlayerState.Walk);
-		mVerticalMovement = 0f;
-	}
-
-	public void InitiateHang()
-	{
-		// Resetting values
-		mAirTimer = 0f;
-		mVerticalMovement = 0f;
-
-		// Low raycast to obtain wall normal
-		Physics.Raycast(transform.position + mHangLimitLow, transform.forward, out mHangRaycastLow, mHangMagnitude);
-
-		/*
-		T: top hit point
-		W: wall hit point
-		TW: vector from T to W
-		The following code block projects TW into xz-plane
-		*/
-		mHangTop = mHangRaycastDown.point;
-		mHangWall = mHangRaycastLow.point;
-		mHangPlanarTW = Vector3.ProjectOnPlane(mHangWall - mHangTop, Vector3.up);
-		mHangPoint = mHangTop + mHangPlanarTW;
-		mHangDirection = -mHangRaycastLow.normal;
-		mHangPointActually = mHangPoint - mHangDirection * mCharacterController.radius + Vector3.down * 1f;
-
-		// Updating state
-		mStateMachine.SetState(PlayerStateMachine.PlayerState.Hang);
-	}
-
-	public IEnumerator InitiateClimb()
-	{
-		// Applying wait time
-		WaitForSeconds wait = new WaitForSeconds(mClimbAnimationDuration);
-		yield return wait;
-		transform.position = transform.position + Vector3.up * mCharacterController.height + mHangDirection * mCharacterController.radius * 2f;
-		mStateMachine.SetState(PlayerStateMachine.PlayerState.Walk);
-		// animator.SetBool("isHanging", isHanging);
-        // animator.SetBool("isClimbing", isClimbing);
-        // animator.Play("slide-ground-end");
-		
-		// Cleanup
-		mHangTop = mHangWall = mHangPlanarTW = mHangPoint = mHangPointActually = Vector3.zero;
-	}
-
-	public void InitiateDrop()
-	{
-		mStateMachine.SetState(PlayerStateMachine.PlayerState.Air);
-		mStateMachine.SetHangability(false);
-		mVerticalMovement = -mHangDropSpeed;
-	}
-
-	public void InitiateRoll()
-	{
-		// Setting state
-		mStateMachine.SetState(PlayerStateMachine.PlayerState.Roll);
-		mRoll.StartRollTimer();
-		mRoll.StartRollCooldownTimer();
-
-		// Calculating planar movement
-		mCameraDirection = Camera.main.transform.rotation;
-		mMovementVector = new Vector3(mStateMachine.GetInputStickL().x, 0f, mStateMachine.GetInputStickL().y);
-		mMovementVector = Vector3.ProjectOnPlane((mCameraDirection * mMovementVector), Vector3.up).normalized * mRoll.GetRollSpeed();
-
-        mRollVector = mMovementVector;
-
-		// Setting rotation
-		transform.forward = mMovementVector.normalized;
-	}
-
-	private void OnDrawGizmosSelected()
-	{
-		mHangLimitHigh = new Vector3(0f, mHangHeightHigh, 0f);
-		mHangLimitLow = new Vector3(0f, mHangHeightLow, 0f);
-		Gizmos.color = mDebugColor;
-		Gizmos.DrawLine(
-			transform.position + mHangLimitHigh,
-			transform.position + mHangLimitHigh + transform.forward * mHangMagnitude);
-		Gizmos.DrawLine(
-			transform.position + mHangLimitHigh + transform.forward * mHangMagnitude,
-			transform.position + mHangLimitHigh + transform.forward + Vector3.down * mHangDelta);
-		Gizmos.DrawLine(
-			transform.position + mHangLimitLow,
-			transform.position + mHangLimitLow + transform.forward * mHangMagnitude);
-
-		if (mHangTop != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangTop,
-				mHangTop + new Vector3(0f, 1f, 0f));
-		}
-		if (mHangPlanarTW != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangTop,
-				mHangTop + mHangPlanarTW);
-		}
-		if (mHangPoint != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangWall,
-				mHangWall - mHangDirection);
-		}
-		if (mHangPointActually != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				mHangPointActually,
-				mHangPointActually - mHangDirection);
-		}
-		if (mHangDirection != Vector3.zero)
-		{
-			Gizmos.DrawLine(
-				transform.position + mDebugOffset,
-				transform.position + mDebugOffset + mHangDirection);
-		}
-	}
-
-    public float GetMovementSpeed()
+    private void Movement(State state)
     {
-        return new Vector3(mMovementVector.x, 0f, mMovementVector.z).magnitude / mWalkSpeed;
+        switch (state)
+        {
+            case State.Walk:
+                {
+                    // Storing movement vector
+                    mMovementVector = PlanarMovement(new Vector2(
+                        mInputManager.GetStickLeft().x, 
+                        mInputManager.GetStickLeft().y));
+
+                    // Applying rotation
+                    transform.forward = Vector3.Slerp(transform.forward, mMovementVector, mRotationSpeed);
+
+                    // Applying constant downwards force
+                    mMovementVector += new Vector3(0f, Physics.gravity.y, 0f) * Time.fixedDeltaTime;
+
+                    // Applying movement
+                    mCharacterController.Move(
+                        mMovementVector 
+                        * mWalkSpeed 
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.Air:
+                {
+                    // Jump vector
+                    if (mJumpVector != Vector3.zero)
+                    {
+                        mJumpVector *= 1f / (1f + mJumpTimer * 0.1f);
+                    }
+
+                    // Storing movement vector
+                    mMovementVector = PlanarMovement(new Vector2(
+                        mInputManager.GetStickLeft().x,
+                        mInputManager.GetStickLeft().y));
+
+                    // Applying rotation
+                    transform.forward = Vector3.Slerp(transform.forward, mMovementVector, mRotationSpeed);
+
+                    // Collecting influence vectors
+                    mMovementVector += mVerticalMovement;
+                    mMovementVector += mJumpVector;
+
+                    // Applying downwards and player-controlled movement
+                    mCharacterController.Move(
+                        mMovementVector 
+                        * mWalkSpeed 
+                        * mAirInfluence 
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            // One frame before jumping, this hack bypasses the isGrounded issue. 
+            case State.Jump:
+                {
+                    // Applying rotation
+                    transform.forward = Vector3.ProjectOnPlane(
+                        Vector3.Slerp(
+                            transform.forward, 
+                            mMovementVector, 
+                            mRotationSpeed), 
+                        Vector3.up).normalized;
+
+                    // Applying downwards and player-controlled movement
+                    mCharacterController.Move(
+                        (mMovementVector + mJumpVector)
+                        * mWalkSpeed
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.JumpDelay:
+                {
+                    // Applying rotation
+                    transform.forward = Vector3.ProjectOnPlane(
+                        Vector3.Slerp(
+                            transform.forward,
+                            mMovementVector,
+                            mRotationSpeed),
+                        Vector3.up).normalized;
+
+                    break;
+                }
+            case State.Roll:
+                {
+                    // Applying constant downwards force
+                    mMovementVector += mVerticalMovement;
+
+                    // Correcting rotation
+                    transform.forward = mMovementVector.normalized;
+
+                    // Applying forward movement
+                    mCharacterController.Move(
+                        mMovementVector
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.RollDelay:
+                {
+                    // Nothing happens here. Maybe later at some point? 
+                    break;
+                }
+            case State.Stun:
+                {
+                    // Applying constant downwards force
+                    mMovementVector += mVerticalMovement;
+
+                    // Applying backwards movement
+                    mCharacterController.Move(
+                        mMovementVector
+                        * (mStunSpeedInitial / (1f + mStunTimer * mStunFalloffMultiplier))
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.StunRecover:
+                {
+                    // Nothing happens here. Maybe later at some point? 
+                    break;
+                }
+            case State.Throw:
+                {
+                    // Storing movement vector
+                    mMovementVector = PlanarMovement(new Vector2(
+                        mInputManager.GetStickLeft().x,
+                        mInputManager.GetStickLeft().y));
+
+                    // Applying rotation
+                    transform.Rotate(
+                        0f, 
+                        mInputManager.GetStickRight().x 
+                        * mInputManager.GetCameraAimSensitivity().x 
+                        * 2f
+                        * Time.deltaTime, 
+                        0f);
+
+                    // Applying constant downwards force
+                    mMovementVector += new Vector3(0f, Physics.gravity.y, 0f) * Time.fixedDeltaTime;
+
+                    // Applying movement
+                    mCharacterController.Move(
+                        mMovementVector 
+                        * mWalkSpeed 
+                        * Time.fixedDeltaTime);
+
+                    break;
+                }
+            case State.Hang:
+                {
+                    break;
+                }
+            case State.Balance:
+                {
+                    break;
+                }
+            case State.Slide:
+                {
+                    break;
+                }
+            default:
+                {
+                    print("This should never trigger!");
+                    break;
+                }
+        }
     }
 
-    public PlayerStateMachine.PlayerState GetPlayerState()
+
+
+    /// <summary>
+    /// Projects vector onto xz-plane. 
+    /// <para>Accepts hoizontal and vertical input in the form of a Vector2. </para>
+    /// </summary>
+    static public Vector3 PlanarMovement(Vector2 input)
     {
-        return mStateMachine.GetState();
+        Vector3 output = new Vector3(input.x, 0f, input.y);
+        Quaternion camDir = Camera.main.transform.rotation;
+        output = camDir * output;
+        output = Vector3.ProjectOnPlane(output, Vector3.up);
+        return output;
     }
 
-    public bool GetGroundedState()
+    private bool CheckHang()
     {
-        return mCharacterController.isGrounded;
+        // Are you allowed to hang? 
+        if (mCanHang)
+        {
+            // If upper raycast hits nothing...
+            if (mCanHang)
+            {
+                // If inset raycast hits something...
+                if (mCanHang)
+                {
+                    //return true;
+                    return false; // temporary hack
+                }
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
+        else
+            return false;
     }
 
+    private bool CheckBalance()
+    {
+        // Temporary!!!
+        return false;
+    }
+
+    public void Stun(Vector3 direction)
+    {
+        mMovementVector = direction;
+        mState = State.Stun;
+    }
+    public void Stun(Vector3 direction, float duration)
+    {
+        mMovementVector = direction;
+        mState = State.Stun;
+        mStunDurationSpecific = duration;
+    }
 }
