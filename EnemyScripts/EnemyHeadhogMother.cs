@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyHeadhogMother : Actor {
+public class EnemyHeadhogMother : MonoBehaviour {
 
     #region
     private enum TypeOfStance
@@ -15,6 +15,15 @@ public class EnemyHeadhogMother : Actor {
 
     private TypeOfStance mTypeOfStance = TypeOfStance.Idle;
 
+    private enum TypeOfPhase
+    {
+        phase1,
+        phase2,
+        phase3
+    }
+    private TypeOfPhase mTypeOfPhase = TypeOfPhase.phase1;
+
+
 #endregion
 
 
@@ -26,6 +35,9 @@ public class EnemyHeadhogMother : Actor {
     [Header("Spawning of Snowballers")]
     [SerializeField]
     private GameObject Spawning_effectPrefab = null;
+
+    [SerializeField]
+    private Transform player = null;
 
     /// <summary>
     /// The spawnPoints used to set the new snowballers out during the encounter.
@@ -51,7 +63,7 @@ public class EnemyHeadhogMother : Actor {
     private void Spawn_Hedgehog()
     {
         numberSpawned = 0;
-        mAnimator.SetTrigger("Spawn");
+        motherAnimator.Spawn();
         StartCoroutine(WaitForRoar(1f));
     }
 
@@ -64,11 +76,14 @@ public class EnemyHeadhogMother : Actor {
         yield return new WaitForSeconds(timeBeforeNextSpawn);
   
         GameObject spawnParticle = Instantiate(Spawning_effectPrefab, mSpawnPoints[numberSpawned].position, Quaternion.identity, null);
+        spawnParticle.GetComponent<SpawningHedgehogParticle>().SetTarget(player);
+        spawnParticle.GetComponent<SpawningHedgehogParticle>().SetPositionAtStart(mSpawnPoints[numberSpawned].GetChild(0).transform.position);
+        print("New target: " + mSpawnPoints[numberSpawned].GetChild(0).transform.position);
         Destroy(spawnParticle, 4f);
         numberSpawned++;
 
         if (numberSpawned < 3)
-            StartCoroutine(WaitForRoar(1f));
+            StartCoroutine(WaitForRoar(2f));
     }
 
     #endregion
@@ -283,10 +298,38 @@ public class EnemyHeadhogMother : Actor {
 
     #endregion
 
+    #region Phases
+
+    public void NextPhase()
+    {
+        print("Took damage!");
+
+        if (mTypeOfPhase == TypeOfPhase.phase1)
+        {
+            mTypeOfPhase = TypeOfPhase.phase2;
+            motherAnimator.Health_GetHit();
+            
+        }
+        else if (mTypeOfPhase == TypeOfPhase.phase2)
+        {
+            mTypeOfPhase = TypeOfPhase.phase3;
+            motherAnimator.Health_GetHit();
+        }
+        else if (mTypeOfPhase == TypeOfPhase.phase3)
+        {
+            print("###SNEHETTA### just died!");
+            motherAnimator.Health_Dying();
+            Destroy(this.gameObject, 5f);
+        }
+    }
+
+#endregion
 
     #region Mother logic / AI
 
     private int currentStep = 0;
+
+    private float durationUntilNextMove = 10f;
 
     [Header("Logic / AI")]
     /// <summary>
@@ -295,20 +338,45 @@ public class EnemyHeadhogMother : Actor {
     [SerializeField]
     private bool useLoop = false;
 
-    private IEnumerator MotherActionsLoop()
+    private IEnumerator MotherActionsLoop(float duration)
     {
-        yield return new WaitForSeconds(20f);
+        yield return new WaitForSeconds(duration);
         if (currentStep < 2)
         {
+            if (mTypeOfPhase == TypeOfPhase.phase1)
+            {
+                durationUntilNextMove = 12f;
+            }
+            else if (mTypeOfPhase == TypeOfPhase.phase2)
+            {
+                durationUntilNextMove = 10f;
+            }
+            else if (mTypeOfPhase == TypeOfPhase.phase3)
+            {
+                durationUntilNextMove = 8f;
+            }
+            
             Spawn_Hedgehog();
             currentStep++;
         }
         else
         {
+            if (mTypeOfPhase == TypeOfPhase.phase1)
+            {
+                durationUntilNextMove = 25f;
+            }
+            else if (mTypeOfPhase == TypeOfPhase.phase2)
+            {
+                durationUntilNextMove = 23f;
+            }
+            else if (mTypeOfPhase == TypeOfPhase.phase3)
+            {
+                durationUntilNextMove = 20f;
+            }
             Breath_Recharge();
             currentStep = 0;
         }
-        StartCoroutine(MotherActionsLoop());
+        StartCoroutine(MotherActionsLoop(durationUntilNextMove));
     }
 
 #endregion
@@ -318,8 +386,6 @@ public class EnemyHeadhogMother : Actor {
     private void Start()
     {
         motherAnimator = transform.GetChild(0).GetComponent<SnowballerMotherAnimations>();
-        Health_SetStandardHealth(mStartingHealth);
-        GetActorComponents();
 
         for (int i = 0; i < 30; i++)
         {
@@ -358,7 +424,7 @@ public class EnemyHeadhogMother : Actor {
 
         if (useLoop)
         {
-            StartCoroutine(MotherActionsLoop());
+            StartCoroutine(MotherActionsLoop(4f));
         }
     }
 

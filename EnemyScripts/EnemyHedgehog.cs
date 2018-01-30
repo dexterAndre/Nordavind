@@ -61,7 +61,7 @@ public class EnemyHedgehog : MonoBehaviour {
     private Transform mTargetToFollow = null;
 
     [SerializeField]
-    private Vector3 mLastPosition = Vector3.zero;
+    private Vector3 mIdleTarget = Vector3.zero;
 
 
 
@@ -88,6 +88,18 @@ public class EnemyHedgehog : MonoBehaviour {
         return false;
     }
 
+    public void SetTargetToFollow(Transform newTarget)
+    {
+        mTargetToFollow = newTarget;
+    }
+
+    public void SetIdleTarget(Vector3 position)
+    {
+        mIdleTarget = position;
+        mNavMeshAgent.SetDestination(mIdleTarget);
+    }
+
+
     private void CheckRangeOfTarget()
     {
 
@@ -97,7 +109,6 @@ public class EnemyHedgehog : MonoBehaviour {
         {
             if (TargetInSight()) {
                 mCurrentStance = TypeOfStances.Following;
-                mLastPosition = transform.position;
             }
                 
         }
@@ -170,7 +181,7 @@ public class EnemyHedgehog : MonoBehaviour {
     {
         //Enveiroment behavior here, will become rather complex after a while.
 
-        mNavMeshAgent.SetDestination(mLastPosition);
+        mNavMeshAgent.SetDestination(mIdleTarget);
     }
 
     #endregion
@@ -178,7 +189,7 @@ public class EnemyHedgehog : MonoBehaviour {
     #region Scared
 
     bool gotScared = false;
-    float timeUntilRunScared = 2f;
+    float timeUntilRunScared = 0.25f;
     private void Actions_Scared()
     {
         if (!gotScared)
@@ -186,7 +197,7 @@ public class EnemyHedgehog : MonoBehaviour {
             mAnimations.Animation_GotHit();
             mNavMeshAgent.SetDestination(transform.position + (transform.forward * 30f));
             mNavMeshAgent.speed = 0f;
-            timeUntilRunScared = 1f;
+            timeUntilRunScared = 0.25f;
             gotScared = true;
         }
         else if (timeUntilRunScared > 0f)
@@ -203,7 +214,6 @@ public class EnemyHedgehog : MonoBehaviour {
     {
         mCurrentStance = TypeOfStances.Idle;
         gotScared = false;
-        mLastPosition = transform.position;
         mNavMeshAgent.speed = mNormalSpeed;
     }
     #endregion
@@ -401,7 +411,6 @@ public class EnemyHedgehog : MonoBehaviour {
     private void Awake()
     {
         mNavMeshAgent = GetComponent<NavMeshAgent>();
-        mLastPosition = transform.position;
         mAnimations = transform.GetChild(0).GetComponent<HedgehogAnimations>();
     }
 

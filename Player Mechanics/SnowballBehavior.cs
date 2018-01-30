@@ -7,38 +7,54 @@ public class SnowballBehavior : MonoBehaviour
     [SerializeField]
     private GameObject prefabForSnowballHit = null;
 
-    private void OnTriggerEnter(Collider collision)
-	{
-        //print("Hit ON_COLLISION_ENTER!");
-        if (collision.gameObject.GetComponent<HealthHedgehog>() != null)
-        {
-            collision.gameObject.GetComponent<HealthHedgehog>().Hedgehog_Takingdamage(1);
-        }
-        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
-        Destroy(snowballhitParticle, 1f);
-        Destroy(gameObject);
-	}
-
-    private void OnTriggerStay(Collider collision)
+    #region TriggerCollision
+    private void HitWithTrigger(Collider collision)
     {
-        //print("Hit ON_COLLISION_ENTER!");
         if (collision.gameObject.GetComponent<HealthHedgehog>() != null)
         {
-            collision.gameObject.GetComponent<HealthHedgehog>().Hedgehog_Takingdamage(1);
+            if (!collision.gameObject.GetComponent<InvincibilityFrames>().GetInvincibleState())
+            {
+                collision.gameObject.GetComponent<HealthHedgehog>().Hedgehog_Takingdamage(1);
+                collision.gameObject.GetComponent<InvincibilityFrames>().StartInvincibility();
+            }
+            
+        }
+        else if (collision.gameObject.transform.parent.GetComponent<HealthSnehetta>() != null)
+        {
+            if (!collision.gameObject.transform.parent.GetComponent<InvincibilityFrames>().GetInvincibleState())
+            {
+                collision.gameObject.transform.parent.GetComponent<HealthSnehetta>().Snehetta_TakeDamage(1);
+                collision.gameObject.transform.parent.GetComponent<InvincibilityFrames>().StartInvincibility();
+            }
+            
         }
         GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
         Destroy(snowballhitParticle, 1f);
         Destroy(gameObject);
     }
+    private void OnTriggerEnter(Collider collision)
+    {
+        HitWithTrigger(collision);
+    }
+
+    private void OnTriggerStay(Collider collision)
+    {
+        HitWithTrigger(collision);
+    }
 
 
     private void OnTriggerExit(Collider collision)
     {
-        //print("Hit ON_COLLISION_ENTER!");
-        if (collision.gameObject.GetComponent<HealthHedgehog>() != null)
-        {
-            collision.gameObject.GetComponent<HealthHedgehog>().Hedgehog_Takingdamage(1);
-        }
+        HitWithTrigger(collision);
+    }
+
+    #endregion
+
+
+    #region ColliderCollision
+
+    private void HitWithCollider(Collision collision)
+    {
         GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
         Destroy(snowballhitParticle, 1f);
         Destroy(gameObject);
@@ -47,20 +63,15 @@ public class SnowballBehavior : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
-        Destroy(snowballhitParticle, 1f);
-        Destroy(gameObject);
+        HitWithCollider(collision);
     }
     private void OnCollisionStay(Collision collision)
     {
-        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
-        Destroy(snowballhitParticle, 1f);
-        Destroy(gameObject);
+        HitWithCollider(collision);
     }
     private void OnCollisionExit(Collision collision)
     {
-        GameObject snowballhitParticle = Instantiate(prefabForSnowballHit, transform.position, Quaternion.identity, null);
-        Destroy(snowballhitParticle, 1f);
-        Destroy(gameObject);
+        HitWithCollider(collision);
     }
+#endregion
 }

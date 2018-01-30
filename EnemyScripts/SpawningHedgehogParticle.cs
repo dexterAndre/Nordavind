@@ -12,6 +12,9 @@ public class SpawningHedgehogParticle : MonoBehaviour {
     [SerializeField]
     private GameObject hedgehogprefab = null;
 
+    private Transform player = null;
+    private Vector3 targetPosition = Vector3.zero;
+
 
     private void Awake()
     {
@@ -37,9 +40,22 @@ public class SpawningHedgehogParticle : MonoBehaviour {
         InnerExplosion.Play();
     }
 
+    public void SetTarget(Transform target)
+    {
+        player = target;
+    }
+
+    public void SetPositionAtStart(Vector3 position)
+    {
+        targetPosition = position;
+    }
+
     private void Spawn_Hedgehog()
     {
         GameObject snowballer = Instantiate(hedgehogprefab, transform.position, Quaternion.identity, null);
+        snowballer.GetComponent<EnemyHedgehog>().SetTargetToFollow(player);
+        snowballer.GetComponent<EnemyHedgehog>().SetIdleTarget(targetPosition);
+        snowballer.GetComponent<EnemyHedgehog>().SetCurrentStance(EnemyHedgehog.TypeOfStances.Idle);
         snowballer.name = "Hedgehog";
     }
 }

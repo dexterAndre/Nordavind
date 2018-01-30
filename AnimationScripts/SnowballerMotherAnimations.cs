@@ -6,11 +6,36 @@ public class SnowballerMotherAnimations : MonoBehaviour {
 
 
     private Animator mAnimator = null;
+    private GameObject crystalCollisionBox = null;
 
 	void Start () {
         mAnimator = GetComponent<Animator>();
         transform.parent.GetComponent<EnemyHeadhogMother>().Breath_DisableVisuals();
+
     }
+
+    #region Death
+
+    [SerializeField]
+    private GameObject prefabForDeathParticles = null;
+
+    public void Death_SpawnParticles()
+    {
+        GameObject deathParticle = Instantiate(prefabForDeathParticles, transform.position, Quaternion.identity, null);
+        Destroy(deathParticle, 2f);
+    }
+
+#endregion
+
+    #region Spawning
+
+    public void Spawn()
+    {
+        mAnimator.SetTrigger("Spawn");
+    }
+    #endregion
+
+    #region Breath
 
     public void StartBreath()
     {
@@ -27,6 +52,8 @@ public class SnowballerMotherAnimations : MonoBehaviour {
         transform.parent.GetComponent<EnemyHeadhogMother>().Breath_DisableVisuals();
     }
 
+#endregion
+
     #region Inhale
     private GameObject inhaleParticle = null;
 
@@ -41,11 +68,46 @@ public class SnowballerMotherAnimations : MonoBehaviour {
     }
 
 
+
+
     #endregion
+
+    #region crystal
+    public void Snehetta_ActivateCrystalCollider()
+    {
+        crystalCollisionBox.SetActive(true);
+    }
+
+
+    public void Snehetta_DeactivateCrystalCollider()
+    {
+        crystalCollisionBox.SetActive(false);
+    }
+
+
+    #endregion
+
+    #region Taking Damage
+
+    public void Health_GetHit()
+    {
+        mAnimator.SetTrigger("GotHit");
+    }
+
+    public void Health_Dying()
+    {
+        mAnimator.SetTrigger("Dead");
+    }
+
+#endregion
 
     private void Awake()
     {
         inhaleParticle = transform.parent.transform.GetChild(3).gameObject;
         inhaleParticle.SetActive(false);
+
+
+        crystalCollisionBox = transform.parent.transform.GetChild(4).gameObject;
+        crystalCollisionBox.SetActive(false);
     }
 }

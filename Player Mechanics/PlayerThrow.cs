@@ -140,6 +140,7 @@ public class PlayerThrow : MonoBehaviour
                 mPlayerMovement.SetState(PlayerMovement.State.Throw);
 
                 // Movement
+                transform.forward = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
                 mPlayerMovement.SetWalkSpeed(mPlayerMovement.GetWalkSpeed() * mStrafeMultiplier);
 
                 // Enabling aim camera, disabling standard camera
@@ -246,7 +247,8 @@ public class PlayerThrow : MonoBehaviour
             Quaternion.identity,
             mProjectileParent);
 
-        snowball.GetComponent<Rigidbody>().velocity = velocity;
+        //snowball.GetComponent<Rigidbody>().velocity = velocity;
+        snowball.GetComponent<Rigidbody>().velocity = new Vector3(velocity.x, velocity.y, velocity.z);
 
         if (destroy)
             Destroy(snowball, mProjectileLifetime);

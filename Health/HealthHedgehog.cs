@@ -28,7 +28,7 @@ public class HealthHedgehog : HealthActor {
             {
                 mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.ChargingUp);
             }
-            else
+            else if (mBehaviorScript.GetCurrentStance() != EnemyHedgehog.TypeOfStances.ChargingUp && mBehaviorScript.GetCurrentStance() != EnemyHedgehog.TypeOfStances.Exploding)
             {
                 mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.Scared);
             }
