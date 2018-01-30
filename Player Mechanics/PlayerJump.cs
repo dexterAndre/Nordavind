@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-[RequireComponent(typeof(PlayerMovement2))]
-public class PlayerJump2 : MonoBehaviour
+[RequireComponent(typeof(PlayerMovement))]
+public class PlayerJump : MonoBehaviour
 {
     /*
         To do: 
@@ -38,7 +38,7 @@ public class PlayerJump2 : MonoBehaviour
     #region References
     [Header("References")]
     [SerializeField]
-    private PlayerMovement2 mPlayerMovement = null;
+    private PlayerMovement mPlayerMovement = null;
     [SerializeField]
     private InputManager mInputManager = null;
     #endregion
@@ -57,7 +57,7 @@ public class PlayerJump2 : MonoBehaviour
     private void Awake ()
 	{
         if (mPlayerMovement == null)
-            mPlayerMovement = GetComponent<PlayerMovement2>();
+            mPlayerMovement = GetComponent<PlayerMovement>();
         if (mInputManager == null)
             mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>(); // optimize this! 
     }
@@ -81,8 +81,8 @@ public class PlayerJump2 : MonoBehaviour
                 }
         }
 
-        if (Input.GetButtonDown("Jump")
-            && mPlayerMovement.GetState() == PlayerMovement2.State.Walk)
+        if (Input.GetButtonDown("Fire1")
+            && mPlayerMovement.GetState() == PlayerMovement.State.Walk)
         {
             // Debug
             if (mIsDebuggingJump)
@@ -95,7 +95,7 @@ public class PlayerJump2 : MonoBehaviour
                 case JumpStyle.Instant:
                     {
                         //Jump((PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)) + Vector3.up * mJumpForceInstant).normalized * mJumpForceInstant);
-                        Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+                        Vector3 inputVector = PlayerMovement.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
 
                         if (inputVector != Vector3.zero)
                             Jump((mJumpWeight * inputVector + (1f - mJumpWeight) * Vector3.up).normalized * mJumpForceInstant);
@@ -132,8 +132,8 @@ public class PlayerJump2 : MonoBehaviour
 
     private void Jump(Vector3 jumpForce)
     {
-        mPlayerMovement.SetState(PlayerMovement2.State.Jump);
-        mPlayerMovement.SetJumpVector(PlayerMovement2.PlanarMovement(new Vector2(
+        mPlayerMovement.SetState(PlayerMovement.State.Jump);
+        mPlayerMovement.SetJumpVector(PlayerMovement.PlanarMovement(new Vector2(
             mInputManager.GetStickLeft().x,
             mInputManager.GetStickLeft().y)) + jumpForce);
     }
@@ -141,7 +141,7 @@ public class PlayerJump2 : MonoBehaviour
     private IEnumerator JumpDelay()
     {
         // Setting state
-        mPlayerMovement.SetState(PlayerMovement2.State.JumpDelay);
+        mPlayerMovement.SetState(PlayerMovement.State.JumpDelay);
 
         // Apply wait time
         WaitForSeconds wait = new WaitForSeconds(mJumpDelayDuration);
@@ -151,7 +151,7 @@ public class PlayerJump2 : MonoBehaviour
         mJumpAngleDelayRemapped = mJumpAngleDelay / 90f;
 
         // Apply jump
-        Vector3 inputVector = PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
+        Vector3 inputVector = PlayerMovement.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y));
         if (inputVector == Vector3.zero)
             Jump(Vector3.up * mJumpForceDelay);
         else
@@ -172,7 +172,7 @@ public class PlayerJump2 : MonoBehaviour
                             + mDebugOffset,
                             transform.position 
                             + mDebugOffset
-                            + (PlayerMovement2.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)) + Vector3.up * mJumpForceInstant).normalized
+                            + (PlayerMovement.PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)) + Vector3.up * mJumpForceInstant).normalized
                             * mDebuggVectorScale);
                         break;
                     }

@@ -2,101 +2,180 @@
 using System.Collections;
 using Cinemachine;
 
-[RequireComponent(typeof(PlayerStateMachine))]
+[RequireComponent(typeof(PlayerMovement))]
 public class PlayerCameraController : MonoBehaviour
 {
-	[Header("References")]
-	[SerializeField]
-	private CinemachineFreeLook mCameraFreeLook = null;
-	private PlayerStateMachine mStateMachine = null;
-	[SerializeField]
-	private Transform mCameraStandardFocus = null;
-	public Transform GetCameraStandardFocus() { return mCameraStandardFocus; }
-	[SerializeField]
-	private Transform mCameraThrowPosition = null;
-	public Transform GetCameraThrowPosition() { return mCameraThrowPosition; }
-	[SerializeField]
-	private Transform mCameraThrowLookAt = null;
-	public Transform GetCameraThrowLookAt() { return mCameraThrowLookAt; }
-	[SerializeField]
-	private Transform mCameraFreeThrowPosition = null;
-	public Transform GetCameraFreeThrowPosition() { return mCameraFreeThrowPosition; }
-	[SerializeField]
-	private Transform mCameraFreeThrowLookAt = null;
-	public Transform GetCameraFreeThrowLookAt() { return mCameraFreeThrowLookAt; }
-	private float mCameraThrowInitialRadius;
+    /*
+        To-do: 
+        - Bug: when transitioning from aim to standard, if you rotate avatar, camera behaves wonkily
+    */
+    [Header("Camera Settings")]
+    [SerializeField]
+    private float mTransitionTime = 0.5f;
+    public float GetTransitionTime() { return mTransitionTime; }
+    public void SetTransitionTime(float time) { mTransitionTime = time; }
 
-	[Header("Bounds")]
-	private float mCameraHorizontalParameter = 0f;
-	[SerializeField]
-	private Vector2 mCameraVerticalParameterBounds;
-	private float mCameraVerticalParameter = 0.25f;
-	[SerializeField]
-	private Vector2 mCameraThrowVerticalBounds;
-	private float mCameraThrowVerticalAngle = 0f;
+    [Header("Bounds")]
+    [SerializeField]
+    private Vector2 mStandardVerticalBounds;
+    [SerializeField]
+    private Vector2 mAimVerticalBounds;
+    [SerializeField]
+    [Tooltip("Multiplier bounds based on the starting distance away from the player. ")]
+    private Vector2 mRadiusScaleBounds;
+    private float mHorizontalParameter = 0f;
+    private float mStandardVerticalParameter = 0.25f;
+    private float mAimVerticalParameter = 0.25f;
+    private float mRadiusScale = 1f;
 
-	private void Start ()
+    [Header("References")]
+    [SerializeField]
+    private CinemachineFreeLook mCameraStandard = null;
+    [SerializeField]
+    private CinemachineFreeLook mCameraAim = null;
+    [SerializeField]
+    private CinemachineBrain mCameraBrain = null;
+    [SerializeField]
+    private PlayerMovement mPlayerMovement = null;
+    [SerializeField]
+    private InputManager mInputManager = null;
+
+    // Default value storage
+    private float[,] mCameraStandardRigMeasurements = new float[3, 2];
+    private float[,] mCameraAimRigMeasurements = new float[3, 2];
+
+
+
+	private void Awake ()
 	{
-        mCameraFreeLook = GameObject.FindGameObjectWithTag("ThirdPersonCamera").GetComponent<CinemachineFreeLook>();
-		mStateMachine = GetComponent<PlayerStateMachine>();
-		mCameraThrowInitialRadius = (mCameraThrowLookAt.position - mCameraThrowPosition.position).magnitude;
-	}
+        // Quick setups
+        if (mPlayerMovement == null)
+            mPlayerMovement = GetComponent<PlayerMovement>();
+        if (mInputManager == null)
+            mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>();
 
-	private void Update ()
+        // Standard third-person camera
+        if (mCameraStandard == null)
+            mCameraStandard = GameObject.Find("Camera Rig Standard").GetComponent<CinemachineFreeLook>();
+        mCameraStandard.Priority = 10;
+        // Setting this as follow target
+        if (mCameraStandard.Follow == null)
+            mCameraStandard.Follow = transform;
+        // Setting "Camera Standard Focus" as look-at target
+        if (mCameraStandard.LookAt == null)
+            mCameraStandard.LookAt = transform
+                .GetChild(3).transform
+                .GetChild(0).transform;
+
+        // Aim mode camera
+        if (mCameraAim == null)
+            mCameraAim = GameObject.Find("Camera Rig Aim").GetComponent<CinemachineFreeLook>();
+        mCameraAim.Priority = 1;
+        // Setting "Aimed Throw Spawn Position" as follow target
+        if (mCameraAim.Follow == null)
+            mCameraAim.Follow = transform
+                .GetChild(3).transform
+                .GetChild(1).transform
+                .GetChild(0).transform;
+        // Setting "Aimed Throw Spawn Position" as look-at target
+        if (mCameraAim.LookAt == null)
+            mCameraAim.LookAt = mCameraAim.Follow;
+
+        // Camera brain
+        if (mCameraBrain == null)
+            mCameraBrain = Camera.main.GetComponent<CinemachineBrain>();
+        mCameraBrain.m_DefaultBlend.m_Time = mTransitionTime;
+
+        // Rig measurements
+        mCameraStandardRigMeasurements[0, 0] = mCameraStandard.m_Orbits[0].m_Height;
+        mCameraStandardRigMeasurements[0, 1] = mCameraStandard.m_Orbits[0].m_Radius;
+        mCameraStandardRigMeasurements[1, 0] = mCameraStandard.m_Orbits[1].m_Height;
+        mCameraStandardRigMeasurements[1, 1] = mCameraStandard.m_Orbits[1].m_Radius;
+        mCameraStandardRigMeasurements[2, 0] = mCameraStandard.m_Orbits[2].m_Height;
+        mCameraStandardRigMeasurements[2, 1] = mCameraStandard.m_Orbits[2].m_Radius;
+
+        mCameraAimRigMeasurements[0, 0] = mCameraAim.m_Orbits[0].m_Height;
+        mCameraAimRigMeasurements[0, 1] = mCameraAim.m_Orbits[0].m_Radius;
+        mCameraAimRigMeasurements[1, 0] = mCameraAim.m_Orbits[1].m_Height;
+        mCameraAimRigMeasurements[1, 1] = mCameraAim.m_Orbits[1].m_Radius;
+        mCameraAimRigMeasurements[2, 0] = mCameraAim.m_Orbits[2].m_Height;
+        mCameraAimRigMeasurements[2, 1] = mCameraAim.m_Orbits[2].m_Radius;
+    }
+
+	private void LateUpdate ()
 	{
-		// Third-person camera mode
-		if (mStateMachine.GetState() != PlayerStateMachine.PlayerState.Throw)
-		{
-			// Storing input
-			mCameraHorizontalParameter
-				= mStateMachine.GetInputStickR().x
-				* mStateMachine.mInputCameraSensitivityX;
-			mCameraVerticalParameter
-				+= mStateMachine.GetInputStickR().y
-				* mStateMachine.mInputCameraSensitivityY;
+        // Standard mode
+        if (mPlayerMovement.GetState() != PlayerMovement.State.Throw)
+        {
+            // Storing input
+            mHorizontalParameter
+                = mInputManager.GetStickRight().x
+                * mInputManager.GetCameraStandardSensitivity().x
+                * Time.deltaTime;
+            mStandardVerticalParameter
+                += mInputManager.GetStickRight().y
+                * mInputManager.GetCameraStandardSensitivity().y
+                * Time.deltaTime;
+            mRadiusScale 
+                += mInputManager.GetDPad().y 
+                * mInputManager.GetCameraStandardDollySensitivity() 
+                * Time.deltaTime;
 
-			// Clamping vertical input within mCameraVerticalParameterBounds
-			if (mCameraVerticalParameter < mCameraVerticalParameterBounds.x)
-				mCameraVerticalParameter = mCameraVerticalParameterBounds.x;
-			else if (mCameraVerticalParameter > mCameraVerticalParameterBounds.y)
-				mCameraVerticalParameter = mCameraVerticalParameterBounds.y;
-			
-			// Updating camera
-			mCameraFreeLook.m_XAxis.m_InputAxisValue = mCameraHorizontalParameter;
-			mCameraFreeLook.m_YAxis.Value = mCameraVerticalParameter;
-		}
-		// Over-the-shoulder aim mode
-		else
-		{
-			// Horizontal rotation
-			transform.Rotate(0f, mStateMachine.GetInputStickR().x * mStateMachine.mInputThrowSensitivityX, 0f);
+            // Clamping vertical input within mStandardVerticalBounds
+            if (mStandardVerticalParameter < mStandardVerticalBounds.x)
+                mStandardVerticalParameter = mStandardVerticalBounds.x;
+            else if (mStandardVerticalParameter > mStandardVerticalBounds.y)
+                mStandardVerticalParameter = mStandardVerticalBounds.y;
 
-			// Setting vertical angle and clamping within mCameraThrowVerticalBounds
-			mCameraThrowVerticalAngle += mStateMachine.GetInputStickR().y * mStateMachine.mInputThrowSensitivityY;
-			if (mCameraThrowVerticalAngle < mCameraThrowVerticalBounds.x)
-				mCameraThrowVerticalAngle = mCameraThrowVerticalBounds.x;
-			else if (mCameraThrowVerticalAngle > mCameraThrowVerticalBounds.y)
-				mCameraThrowVerticalAngle = mCameraThrowVerticalBounds.y;
-			
-			// Applying vertical rotation
-			mCameraThrowLookAt.position 
-				= mCameraThrowPosition.position
-				+ transform.forward * Mathf.Cos(mCameraThrowVerticalAngle * Mathf.Deg2Rad) * mCameraThrowInitialRadius
-				+ Vector3.up * Mathf.Sin(mCameraThrowVerticalAngle * Mathf.Deg2Rad) * mCameraThrowInitialRadius * (-1f);
-		}
-	}
+            // Clamping dolly between mDistanceBounds
+            if (mRadiusScale < mRadiusScaleBounds.x)
+                mRadiusScale = mRadiusScaleBounds.x;
+            else if (mRadiusScale > mRadiusScaleBounds.y)
+                mRadiusScale = mRadiusScaleBounds.y;
 
-	public void InitiateThirdPersonCamera()
-	{
-		mCameraFreeLook.m_YAxis.Value = mCameraVerticalParameter;
-		mCameraFreeLook.Follow = transform;
-		mCameraFreeLook.LookAt = mCameraStandardFocus;
-	}
+            // Updating standard camera
+            mCameraStandard.m_XAxis.m_InputAxisValue = mHorizontalParameter;
+            mCameraStandard.m_YAxis.Value = mStandardVerticalParameter;
+            for (int i = 0; i < 3; i++)
+            {
+                mCameraStandard.m_Orbits[i].m_Radius 
+                    = mCameraStandardRigMeasurements[i, 1] 
+                    * mRadiusScale;
+            }
+        }
+        else
+        // Aim mode
+        {
+            // Storing input
+            mAimVerticalParameter
+                += mInputManager.GetStickRight().y
+                * mInputManager.GetCameraAimSensitivity().y
+                * Time.deltaTime;
+            mRadiusScale
+                += mInputManager.GetDPad().y
+                * mInputManager.GetCameraAimDollySensitivity()
+                * Time.deltaTime;
 
-	public void InitiateThrowCamera()
-	{
-		mCameraFreeLook.m_YAxis.Value = 1f;
-		mCameraFreeLook.Follow = mCameraThrowPosition;
-		mCameraFreeLook.LookAt = mCameraThrowLookAt;
+            // Clamping vertical input within mStandardVerticalBounds
+            if (mAimVerticalParameter < mAimVerticalBounds.x)
+                mAimVerticalParameter = mAimVerticalBounds.x;
+            else if (mAimVerticalParameter > mAimVerticalBounds.y)
+                mAimVerticalParameter = mAimVerticalBounds.y;
+
+            // Clamping dolly between mDistanceBounds
+            if (mRadiusScale < mRadiusScaleBounds.x)
+                mRadiusScale = mRadiusScaleBounds.x;
+            else if (mRadiusScale > mRadiusScaleBounds.y)
+                mRadiusScale = mRadiusScaleBounds.y;
+
+            // Updating standard camera
+            mCameraAim.m_YAxis.Value = mAimVerticalParameter;
+            for (int i = 0; i < 3; i++)
+            {
+                mCameraAim.m_Orbits[i].m_Radius 
+                    = mCameraAimRigMeasurements[i, 1] 
+                    * mRadiusScale;
+            }
+        }
 	}
 }

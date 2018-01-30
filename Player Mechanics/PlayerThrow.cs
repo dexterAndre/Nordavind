@@ -1,96 +1,298 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Cinemachine;
 
-[RequireComponent(typeof(PlayerStateMachine), typeof(PlayerMovement), typeof(PlayerCameraController))]
+[RequireComponent(typeof(PlayerMovement), typeof(PlayerCameraController))]
 public class PlayerThrow : MonoBehaviour
 {
-    /* 
-    To-do:
-    - Do not spawn from camera (aimed mode). Make a new object. 
-    - Constraints when in aimed mode. 
-    - Make a new rig entirely for the aim mode. 
-    - - Place the camera behind the sawn position. The arm will have to animate in front, but that's fine. 
-    - Lock-on system for free throwing? 
-    - Adjust projectile rigidbody from Throw script. 
-    - - Add gravityscale in Throw for the Projectile. 
-    - - - Add gravity extra vector in ProjectileBehavior. 
+    /*
+        To do: 
     */
 
-    [Header("Throw Settings")]
-	[SerializeField]
-	private float mThrowStrength;
-	[SerializeField]
-    [Tooltip("Time before projectile is automatically destroyed. ")]
-	private float mThrowLifetime;
-	private Vector3 mThrowVector;
+    [Header("Movement")]
+    [SerializeField]
+    private float mStrafeMultiplier;
+    private float mWalkSpeedOriginal;
 
-	[Header("References")]
-	[SerializeField]
-	private GameObject mProjectile = null;
-	[SerializeField]
-	private Transform mProjectileParent = null;
-	private PlayerStateMachine mStateMachine = null;
-	[SerializeField]
-	private PlayerCameraController mCameraController = null;
+    [Header("Projectile")]
+    [SerializeField]
+    private GameObject mProjectile = null;
+    [SerializeField]
+    private float mProjectileLifetime = 5f;
+    [SerializeField]
+    private Transform mProjectileParent = null;
+
+    [Header("Cooldown")]
+    [SerializeField]
+    private float mThrowCooldown = 1f;
+    private float mThrowCooldownTimer = 0f;
+    [Tooltip("One throw per RT button-down. ")]
+    private bool mCooldown = false;
+
+    [Header("Physics")]
+    [SerializeField]
+    private float mThrowStrength;
+    [SerializeField]
+    private float mProjectileGravityScale;
+
+    [Header("References")]
+    [SerializeField]
+    private Transform mAimedThrowSpawn = null;
+    [SerializeField]
+    private Transform mFreeThrowSpawn = null;
+    [SerializeField]
+    private Transform mFreeThrowFocus = null;
+    [SerializeField]
+    private SpriteRenderer mReticle = null;
     [SerializeField]
     private PlayerMovement mPlayerMovement = null;
+    [SerializeField]
+    private CharacterController mCharacterController = null;
+    [SerializeField]
+    private InputManager mInputManager = null;
+    [SerializeField]
+    private PlayerCameraController mCameraController = null;
+    [SerializeField]
+    private CinemachineFreeLook mCameraStandard = null;
+    [SerializeField]
+    private CinemachineFreeLook mCameraAim = null;
 
-	private void Start()
+    [Header("Debug")]
+    [SerializeField]
+    private bool mIsDebuggingThrow = true;
+    [SerializeField]
+    private Color mDebugAimedColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 255f / 255f);
+    [SerializeField]
+    private Color mDebugFreeColor = new Color(255f / 255f, 55f / 255f, 55f / 255f, 255f / 255f);
+
+
+
+    private void Awake ()
 	{
-		mStateMachine = GetComponent<PlayerStateMachine>();
-		mCameraController = GetComponent<PlayerCameraController>();
-        mPlayerMovement = GetComponent<PlayerMovement>();
-	}
+        if (mPlayerMovement == null)
+            mPlayerMovement = GetComponent<PlayerMovement>();
+        if (mCharacterController == null)
+            mCharacterController = GetComponent<CharacterController>();
+        if (mCameraController == null)
+            mCameraController = GetComponent<PlayerCameraController>();
+        
+        // Sets walk speed at awake. Does not respond to real-time changes. 
+        mWalkSpeedOriginal = mPlayerMovement.GetWalkSpeed();
+
+        if (mAimedThrowSpawn == null)
+            mAimedThrowSpawn = transform
+                .GetChild(3).transform
+                .GetChild(1).transform
+                .GetChild(0).transform;
+
+        if (mFreeThrowSpawn == null)
+            mFreeThrowSpawn = transform
+                .GetChild(3).transform
+                .GetChild(1).transform
+                .GetChild(1).transform;
+
+        if (mFreeThrowFocus == null)
+            mFreeThrowFocus = transform
+                .GetChild(3).transform
+                .GetChild(1).transform
+                .GetChild(1).transform
+                .GetChild(0).transform;
+
+        if (mReticle == null)
+            mReticle = mAimedThrowSpawn.GetComponent<SpriteRenderer>();
+        mReticle.enabled = false;
+
+        if (mProjectileParent == null)
+            mProjectileParent = GameObject.Find("Projectiles").transform;
+
+        if (mInputManager == null)
+            mInputManager = GameObject.Find("Input Manager").GetComponent<InputManager>();
+
+        if (mCameraStandard == null)
+            mCameraStandard = GameObject.Find("Camera Rig Standard").GetComponent<CinemachineFreeLook>();
+
+        if (mCameraAim == null)
+            mCameraAim = GameObject.Find("Camera Rig Aim").GetComponent<CinemachineFreeLook>();
+    }
 
 	private void Update ()
 	{
-		// Aimed throw
-		if (
-			mStateMachine.GetState() == PlayerStateMachine.PlayerState.Throw
-			&& Input.GetButtonDown("Fire3"))
-		{
-			mThrowVector = (mCameraController.GetCameraThrowLookAt().position - mCameraController.GetCameraThrowPosition().position).normalized * mThrowStrength;
-			Throw(
-				mCameraController.GetCameraThrowPosition().position,
-				mThrowVector,
-				true);
-		}
-		// Free throw
-		else if (
-			mStateMachine.GetState() == PlayerStateMachine.PlayerState.Walk
-			&& Input.GetButtonDown("Fire3"))
-		{
-			mThrowVector = (mCameraController.GetCameraFreeThrowLookAt().position - mCameraController.GetCameraFreeThrowPosition().position).normalized * mThrowStrength;
-			Throw(
-				mCameraController.GetCameraFreeThrowPosition().position,
-				mThrowVector,
-				true);
-		}
-	}
+        // Per-trigger cooldown
+        if (mCooldown)
+            if (mInputManager.GetTriggers().y == 0f)
+                mCooldown = false;
 
-	private void Throw(Vector3 position, Vector3 velocity, bool destroy)
-	{
-		GameObject snowball = (GameObject)Instantiate(
-			mProjectile,
-			position,
-			Quaternion.identity,
-			mProjectileParent);
-		snowball.GetComponent<Rigidbody>().velocity = velocity;
-		if (destroy)
-			Destroy(snowball, mThrowLifetime);
-	}
-
-	private void OnDrawGizmosSelected()
-	{
-        if (mPlayerMovement.GetIsDebugging())
+        // Global cooldown
+        if (mThrowCooldownTimer > 0f)
         {
-		    Gizmos.color = new Color(255, 125, 0, 1);
-		    Gizmos.DrawLine(
-			    mCameraController.GetCameraThrowPosition().position,
-			    mCameraController.GetCameraThrowLookAt().position);
-		    Gizmos.DrawLine(
-			    mCameraController.GetCameraFreeThrowPosition().position,
-			    mCameraController.GetCameraFreeThrowLookAt().position);
+            mThrowCooldownTimer += Time.deltaTime;
+            if (mThrowCooldownTimer >= mThrowCooldown)
+            {
+                mThrowCooldownTimer = 0f;
+            }
+        }
+
+        // Sending signals
+        if (mInputManager.GetTriggers().x != 0f)
+        {
+            // Walk-to-throw
+            if (mPlayerMovement.GetState() == PlayerMovement.State.Walk)
+            {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON PRESS: \t LT. ");
+                }
+
+                mPlayerMovement.SetState(PlayerMovement.State.Throw);
+
+                // Movement
+                transform.forward = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
+                mPlayerMovement.SetWalkSpeed(mPlayerMovement.GetWalkSpeed() * mStrafeMultiplier);
+
+                // Enabling aim camera, disabling standard camera
+                mCameraStandard.Priority = 1;
+                mCameraAim.Priority = 10;
+
+                // Setting standard camera to follow aim camera
+                mCameraStandard.m_Follow = mCameraAim.transform;
+                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.LockToTarget, true));
+
+                // Enabling reticle
+                mReticle.enabled = true;
+
+                // Prevent standard camera from drifting when changing between cameras
+                mCameraStandard.m_XAxis.m_InputAxisValue = 0f;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t WALK \t -> \t THROW. ");
+                }
+            }
+            
+            // Perform aimed throw
+            if (!mCooldown)
+            {
+                if (
+                    mPlayerMovement.GetState() == PlayerMovement.State.Throw 
+                    && mInputManager.GetTriggers().y != 0f
+                    && mThrowCooldownTimer == 0f)
+                {
+                    // Debug
+                    if (mIsDebuggingThrow)
+                    {
+                        print("BUTTON PRESS: \t RT. ");
+                    }
+
+                    Throw(
+                        mAimedThrowSpawn.position,
+                        (mAimedThrowSpawn.position - Camera.main.transform.position)
+                        .normalized
+                        * mThrowStrength,
+                        true);
+
+                    // Cooldown start
+                    mThrowCooldownTimer += Time.deltaTime;
+                }
+            }
+        }
+        else
+        {
+            // Throw-to-walk
+            if (mPlayerMovement.GetState() == PlayerMovement.State.Throw)
+            {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON RELEASE: \t LT. ");
+                }
+
+                mPlayerMovement.SetState(PlayerMovement.State.Walk);
+
+                // Movement
+                mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);   // might fix later
+
+                // Enabling standard camera, disabling aim camera
+                mCameraStandard.Priority = 10;
+                mCameraAim.Priority = 1;
+
+                // Resetting standard camera follow target
+                mCameraStandard.m_Follow = transform;
+                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, false));
+
+                // Enabling reticle
+                mReticle.enabled = false;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t THROW \t -> \t WALK. ");
+                }
+            }
+            
+            // Perform free throw
+            if (!mCooldown)
+            {
+                if (
+                    (mPlayerMovement.GetState() == PlayerMovement.State.Walk
+                    || mPlayerMovement.GetState() == PlayerMovement.State.Air)
+                    && mInputManager.GetTriggers().y != 0f
+                    && mThrowCooldownTimer == 0f)
+                {
+                    Throw(
+                        mFreeThrowSpawn.position,
+                        (mFreeThrowFocus.position - mFreeThrowSpawn.position)
+                        .normalized
+                        * mThrowStrength,
+                        true);
+
+                    // Cooldown start
+                    mThrowCooldownTimer += Time.deltaTime;
+                }
+            }
         }
 	}
+
+    private void Throw(Vector3 spawn, Vector3 velocity, bool destroy)
+    {
+        GameObject snowball = Instantiate(
+            mProjectile,
+            spawn,
+            Quaternion.identity,
+            mProjectileParent);
+
+        snowball.GetComponent<Rigidbody>().velocity = velocity;
+
+        if (destroy)
+            Destroy(snowball, mProjectileLifetime);
+
+        mCooldown = true;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (mIsDebuggingThrow)
+        {
+            Gizmos.color = mDebugAimedColor;
+            Gizmos.DrawLine(
+                Camera.main.transform.position,
+                mAimedThrowSpawn.position);
+            Gizmos.color = mDebugFreeColor;
+            Gizmos.DrawLine(
+                mFreeThrowSpawn.position,
+                mFreeThrowFocus.position);
+        }
+    }
+
+    private IEnumerator SetBindingMode(CinemachineTransposer.BindingMode mode, bool delay)
+    {
+        if (delay)
+        {
+            WaitForSeconds wait = new WaitForSeconds(mCameraController.GetTransitionTime());
+            yield return wait;
+        }
+
+        mCameraStandard.m_BindingMode = mode;
+    }
 }
