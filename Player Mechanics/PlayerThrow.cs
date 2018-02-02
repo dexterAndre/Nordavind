@@ -7,6 +7,7 @@ public class PlayerThrow : MonoBehaviour
 {
     /*
         To do: 
+        - Get lock-on to work! 
     */
 
     [Header("Movement")]
@@ -21,6 +22,7 @@ public class PlayerThrow : MonoBehaviour
     private float mProjectileLifetime = 5f;
     [SerializeField]
     private Transform mProjectileParent = null;
+    private Transform mReticlePositionInitial = null;
 
     [Header("Cooldown")]
     [SerializeField]
@@ -28,6 +30,17 @@ public class PlayerThrow : MonoBehaviour
     private float mThrowCooldownTimer = 0f;
     [Tooltip("One throw per RT button-down. ")]
     private bool mCooldown = false;
+
+    [Header("Lock-On Targeting")]
+    [SerializeField]
+    private Vector3 mLockonTarget;
+    [SerializeField]
+    private Transform mLockonLookat;
+    [SerializeField]
+    private float mLockonReticleHeight = 2f;
+    [SerializeField]
+    [Range(0f, 50f)]
+    private float mLockonDistanceMax = 15f;
 
     [Header("Physics")]
     [SerializeField]
@@ -43,6 +56,8 @@ public class PlayerThrow : MonoBehaviour
     [SerializeField]
     private Transform mFreeThrowFocus = null;
     [SerializeField]
+    private Transform mLockonFocus = null;
+    [SerializeField]
     private SpriteRenderer mReticle = null;
     [SerializeField]
     private PlayerMovement mPlayerMovement = null;
@@ -56,6 +71,8 @@ public class PlayerThrow : MonoBehaviour
     private CinemachineFreeLook mCameraStandard = null;
     [SerializeField]
     private CinemachineFreeLook mCameraAim = null;
+    [SerializeField]
+    private CinemachineFreeLook mCameraLockon = null;
 
     [Header("Debug")]
     [SerializeField]
@@ -98,6 +115,13 @@ public class PlayerThrow : MonoBehaviour
                 .GetChild(1).transform
                 .GetChild(0).transform;
 
+        if (mLockonFocus == null)
+        {
+            mLockonFocus = transform
+                .GetChild(3).transform
+                .GetChild(2).transform;
+        }
+
         if (mReticle == null)
             mReticle = mAimedThrowSpawn.GetComponent<SpriteRenderer>();
         mReticle.enabled = false;
@@ -113,6 +137,15 @@ public class PlayerThrow : MonoBehaviour
 
         if (mCameraAim == null)
             mCameraAim = GameObject.Find("Camera Rig Aim").GetComponent<CinemachineFreeLook>();
+
+        if (mCameraLockon == null)
+            mCameraLockon = GameObject.Find("Camera Rig Lockon").GetComponent<CinemachineFreeLook>();
+
+        if (mReticlePositionInitial == null)
+            mReticlePositionInitial = mReticle.gameObject.transform;
+
+        // Setting lock-on max targeting distance
+        GetComponent<SphereCollider>().radius = mLockonDistanceMax;
     }
 
 	private void Update ()
@@ -133,7 +166,7 @@ public class PlayerThrow : MonoBehaviour
         }
 
         // Sending signals
-        if (mInputManager.GetTriggers().x != 0f)
+        if (Input.GetButtonDown("ClickStickR"))
         {
             // Walk-to-throw
             if (mPlayerMovement.GetState() == PlayerMovement.State.Walk)
@@ -141,7 +174,7 @@ public class PlayerThrow : MonoBehaviour
                 // Debug
                 if (mIsDebuggingThrow)
                 {
-                    print("BUTTON PRESS: \t LT. ");
+                    print("BUTTON PRESS: \t RS Click. ");
                 }
 
                 mPlayerMovement.SetState(PlayerMovement.State.Throw);
@@ -170,42 +203,13 @@ public class PlayerThrow : MonoBehaviour
                     print("MAN TRANSITION: \t WALK \t -> \t THROW. ");
                 }
             }
-            
-            // Perform aimed throw
-            if (!mCooldown)
-            {
-                if (
-                    mPlayerMovement.GetState() == PlayerMovement.State.Throw 
-                    && mInputManager.GetTriggers().y != 0f
-                    && mThrowCooldownTimer == 0f)
-                {
-                    // Debug
-                    if (mIsDebuggingThrow)
-                    {
-                        print("BUTTON PRESS: \t RT. ");
-                    }
-
-                    Throw(
-                        mAimedThrowSpawn.position,
-                        (mAimedThrowSpawn.position - Camera.main.transform.position)
-                        .normalized
-                        * mThrowStrength,
-                        true);
-
-                    // Cooldown start
-                    mThrowCooldownTimer += Time.deltaTime;
-                }
-            }
-        }
-        else
-        {
             // Throw-to-walk
-            if (mPlayerMovement.GetState() == PlayerMovement.State.Throw)
+            else if (mPlayerMovement.GetState() == PlayerMovement.State.Throw)
             {
                 // Debug
                 if (mIsDebuggingThrow)
                 {
-                    print("BUTTON RELEASE: \t LT. ");
+                    print("BUTTON PRESS: \t RS Click. ");
                 }
 
                 mPlayerMovement.SetState(PlayerMovement.State.Walk);
@@ -230,26 +234,126 @@ public class PlayerThrow : MonoBehaviour
                     print("MAN TRANSITION: \t THROW \t -> \t WALK. ");
                 }
             }
-            
-            // Perform free throw
-            if (!mCooldown)
+        }
+        else if (mInputManager.GetTriggers().x != 0.0f)
+        {
+            // Walk-to-lock-on
+            if (mPlayerMovement.GetState() == PlayerMovement.State.Walk)
             {
-                if (
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON PRESS: \t LT. ");
+                }
+
+                mPlayerMovement.SetState(PlayerMovement.State.Lockon);
+                RaycastHit[] enemies = Physics.SphereCastAll(
+                    transform.position,
+                    mLockonDistanceMax,
+                    transform.forward,
+                    LayerMask.NameToLayer("Enemy"));
+                mLockonTarget = GameObject.FindGameObjectsWithTag("Enemy")[0].transform.position - transform.position;
+                mLockonFocus = GameObject.FindGameObjectsWithTag("Enemy")[0].transform;
+                mLockonLookat = GameObject.FindGameObjectsWithTag("Enemy")[0].transform;
+
+                // Movement
+                transform.forward = Vector3.ProjectOnPlane(mLockonTarget - transform.position, Vector3.up);
+                mPlayerMovement.SetWalkSpeed(mPlayerMovement.GetWalkSpeed() * mStrafeMultiplier);
+
+                // Enabling aim camera, disabling standard camera
+                mCameraStandard.Priority = 1;
+                mCameraLockon.Priority = 10;
+
+                // Setting standard camera to follow aim camera
+                mCameraStandard.m_Follow = mCameraLockon.transform;
+                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.LockToTarget, true));
+
+                // Enabling reticle
+                mReticle.enabled = true;
+                mReticle.transform.position = mLockonTarget + Vector3.up * mLockonReticleHeight;
+
+                // Prevent standard camera from drifting when changing between cameras
+                mCameraStandard.m_XAxis.m_InputAxisValue = 0f;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t WALK \t -> \t LOCKON. ");
+                }
+            }
+            // Throw-to-walk
+            else if (mPlayerMovement.GetState() == PlayerMovement.State.Lockon)
+            {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON RELEASE: \t LT. ");
+                }
+
+                mPlayerMovement.SetState(PlayerMovement.State.Walk);
+
+                // Movement
+                mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);   // might fix later
+
+                // Enabling standard camera, disabling aim camera
+                mCameraStandard.Priority = 10;
+                mCameraLockon.Priority = 1;
+
+                // Resetting standard camera follow target
+                mCameraStandard.m_Follow = transform;
+                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, false));
+
+                // Enabling reticle
+                mReticle.enabled = false;
+                mReticle.transform.position = mReticlePositionInitial.position;
+
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("MAN TRANSITION: \t LOCKON \t -> \t WALK. ");
+                }
+            }
+        }
+
+        // Perform aimed throw
+        if (!mCooldown)
+        {
+            if (
+                mPlayerMovement.GetState() == PlayerMovement.State.Throw
+                && mInputManager.GetTriggers().y != 0f
+                && mThrowCooldownTimer == 0f)
+            {
+                // Debug
+                if (mIsDebuggingThrow)
+                {
+                    print("BUTTON PRESS: \t RT. ");
+                }
+
+                Throw(
+                    mAimedThrowSpawn.position,
+                    (mAimedThrowSpawn.position - Camera.main.transform.position)
+                    .normalized
+                    * mThrowStrength,
+                    true);
+
+                // Cooldown start
+                mThrowCooldownTimer += Time.deltaTime;
+            }
+            else if (
                     (mPlayerMovement.GetState() == PlayerMovement.State.Walk
                     || mPlayerMovement.GetState() == PlayerMovement.State.Air)
                     && mInputManager.GetTriggers().y != 0f
                     && mThrowCooldownTimer == 0f)
-                {
-                    Throw(
-                        mFreeThrowSpawn.position,
-                        (mFreeThrowFocus.position - mFreeThrowSpawn.position)
-                        .normalized
-                        * mThrowStrength,
-                        true);
+            {
+                Throw(
+                    mFreeThrowSpawn.position,
+                    (mFreeThrowFocus.position - mFreeThrowSpawn.position)
+                    .normalized
+                    * mThrowStrength,
+                    true);
 
-                    // Cooldown start
-                    mThrowCooldownTimer += Time.deltaTime;
-                }
+                // Cooldown start
+                mThrowCooldownTimer += Time.deltaTime;
             }
         }
 	}

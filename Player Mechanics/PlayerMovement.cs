@@ -32,6 +32,7 @@ public class PlayerMovement : MonoBehaviour
         Stun,
         StunRecover,
         Throw,
+        Lockon,
         Slide
     };
     [Header("State")]
@@ -45,6 +46,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float mWalkSpeed = 7.5f;
     public float GetWalkSpeed() { return mWalkSpeed; }
+    public float GetWalkSpeedNormalized() { return PlanarMovement(new Vector2(mInputManager.GetStickLeft().x, mInputManager.GetStickLeft().y)).magnitude; }
     public void SetWalkSpeed(float walkSpeed) { mWalkSpeed = walkSpeed; }
     [SerializeField]
     private float mAirInfluence = 0.5f;
@@ -408,6 +410,10 @@ public class PlayerMovement : MonoBehaviour
                         * mWalkSpeed 
                         * Time.fixedDeltaTime);
 
+                    break;
+                }
+            case State.Lockon:
+                {
                     break;
                 }
             case State.Hang:

@@ -44,6 +44,14 @@ public class InputManager : MonoBehaviour
     [Tooltip("Change in radius multiplier per second. ")]
     private float mCameraAimDollySensitivity = 1f;
     public float GetCameraAimDollySensitivity() { return mCameraAimDollySensitivity; }
+    [SerializeField]
+    [Tooltip("Change in radius multiplier per second. ")]
+    private Vector2 mCameraLockonDollySensitivity = Vector2.one;
+    public Vector2 GetCameraLockonDollySensitivity() { return mCameraLockonDollySensitivity; }
+    [SerializeField]
+    [Tooltip("Dead zone for selecting targets from within Locn-On camera mode. ")]
+    private float mCameraLockonTargetDeadZone = 0.8f;
+    public float GetCameraLockonTargetDeadZone() { return mCameraLockonTargetDeadZone; }
 
     //[Header("Controllers")]
     //[SerializeField]

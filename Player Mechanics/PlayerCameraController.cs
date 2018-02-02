@@ -8,6 +8,9 @@ public class PlayerCameraController : MonoBehaviour
     /*
         To-do: 
         - Bug: when transitioning from aim to standard, if you rotate avatar, camera behaves wonkily
+        - Store camera parameters so that when transitioning, you don't get abruptly rotated
+
+        Upgrade guide: 
     */
     [Header("Camera Settings")]
     [SerializeField]
@@ -34,6 +37,8 @@ public class PlayerCameraController : MonoBehaviour
     [SerializeField]
     private CinemachineFreeLook mCameraAim = null;
     [SerializeField]
+    private CinemachineFreeLook mCameraLockon = null;
+    [SerializeField]
     private CinemachineBrain mCameraBrain = null;
     [SerializeField]
     private PlayerMovement mPlayerMovement = null;
@@ -43,6 +48,7 @@ public class PlayerCameraController : MonoBehaviour
     // Default value storage
     private float[,] mCameraStandardRigMeasurements = new float[3, 2];
     private float[,] mCameraAimRigMeasurements = new float[3, 2];
+    private float[,] mCameraLockonRigMeasurements = new float[3, 2];
 
 
 
@@ -81,12 +87,25 @@ public class PlayerCameraController : MonoBehaviour
         if (mCameraAim.LookAt == null)
             mCameraAim.LookAt = mCameraAim.Follow;
 
+        // Lock-on mode camera
+        if (mCameraLockon == null)
+            mCameraLockon = GameObject.Find("Camera Rig Lockon").GetComponent<CinemachineFreeLook>();
+        mCameraLockon.Priority = 1;
+        // Setting this as follow target
+        if (mCameraLockon.Follow == null)
+            mCameraLockon.Follow = transform;
+        // Setting "Camera Lockon Target" as look-at target
+        if (mCameraLockon.LookAt == null)
+            mCameraLockon.LookAt = transform
+                .GetChild(3).transform
+                .GetChild(2).transform;
+
         // Camera brain
         if (mCameraBrain == null)
             mCameraBrain = Camera.main.GetComponent<CinemachineBrain>();
         mCameraBrain.m_DefaultBlend.m_Time = mTransitionTime;
 
-        // Rig measurements
+        // Storing startup rig measurements
         mCameraStandardRigMeasurements[0, 0] = mCameraStandard.m_Orbits[0].m_Height;
         mCameraStandardRigMeasurements[0, 1] = mCameraStandard.m_Orbits[0].m_Radius;
         mCameraStandardRigMeasurements[1, 0] = mCameraStandard.m_Orbits[1].m_Height;
@@ -100,12 +119,20 @@ public class PlayerCameraController : MonoBehaviour
         mCameraAimRigMeasurements[1, 1] = mCameraAim.m_Orbits[1].m_Radius;
         mCameraAimRigMeasurements[2, 0] = mCameraAim.m_Orbits[2].m_Height;
         mCameraAimRigMeasurements[2, 1] = mCameraAim.m_Orbits[2].m_Radius;
+
+        mCameraLockonRigMeasurements[0, 0] = mCameraLockon.m_Orbits[0].m_Height;
+        mCameraLockonRigMeasurements[0, 1] = mCameraLockon.m_Orbits[0].m_Radius;
+        mCameraLockonRigMeasurements[1, 0] = mCameraLockon.m_Orbits[1].m_Height;
+        mCameraLockonRigMeasurements[1, 1] = mCameraLockon.m_Orbits[1].m_Radius;
+        mCameraLockonRigMeasurements[2, 0] = mCameraLockon.m_Orbits[2].m_Height;
+        mCameraLockonRigMeasurements[2, 1] = mCameraLockon.m_Orbits[2].m_Radius;
     }
 
 	private void LateUpdate ()
 	{
         // Standard mode
-        if (mPlayerMovement.GetState() != PlayerMovement.State.Throw)
+        if (mPlayerMovement.GetState() != PlayerMovement.State.Throw
+            && mPlayerMovement.GetState() != PlayerMovement.State.Lockon)
         {
             // Storing input
             mHorizontalParameter
@@ -143,8 +170,31 @@ public class PlayerCameraController : MonoBehaviour
                     * mRadiusScale;
             }
         }
-        else
+        // Lock-on mode
+        else if (mPlayerMovement.GetState() == PlayerMovement.State.Lockon)
+        {
+            // Storing input
+            mRadiusScale
+                += mInputManager.GetDPad().y
+                * mInputManager.GetCameraLockonDollySensitivity().y
+                * Time.deltaTime;
+
+            // Clamping dolly between mDistanceBounds
+            if (mRadiusScale < mRadiusScaleBounds.x)
+                mRadiusScale = mRadiusScaleBounds.x;
+            else if (mRadiusScale > mRadiusScaleBounds.y)
+                mRadiusScale = mRadiusScaleBounds.y;
+
+            // Updating lock-on camera
+            for (int i = 0; i < 3; i++)
+            {
+                mCameraLockon.m_Orbits[i].m_Radius
+                    = mCameraLockonRigMeasurements[i, 1]
+                    * mRadiusScale;
+            }
+        }
         // Aim mode
+        else if (mPlayerMovement.GetState() == PlayerMovement.State.Throw)
         {
             // Storing input
             mAimVerticalParameter
