@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyHeadhogMother : MonoBehaviour {
+public class EnemySnehetta : MonoBehaviour {
 
     #region
     private enum TypeOfStance
@@ -414,12 +414,12 @@ public class EnemyHeadhogMother : MonoBehaviour {
 
     private void Awake()
     {
-        mHeadTransform = transform.GetChild(1).transform.GetChild(0).GetComponent<Transform>();
+        mHeadTransform = transform.GetChild(2).transform.GetChild(0).GetComponent<Transform>();
         BreathImpactLocation = mHeadTransform.GetChild(0).transform.GetChild(31);
 
         for (int i = 0; i < 3; i++)
         {
-            mSpawnPoints[i] = transform.GetChild(2).transform.GetChild(i).GetComponent<Transform>();
+            mSpawnPoints[i] = transform.GetChild(3).transform.GetChild(i).GetComponent<Transform>();
         }
 
         if (useLoop)

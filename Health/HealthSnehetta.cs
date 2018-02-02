@@ -2,24 +2,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HealthSnehetta : HealthActor {
+public class HealthSnehetta : MonoBehaviour {
 
-    private EnemyHeadhogMother snehettaMainScript = null;
-    
+    private EnemySnehetta snehettaMainScript = null;
+
     [SerializeField]
-    private int snehettaHealth = 3;
+    private HealthType mHealthScript = null;
+
+    private int currentHealth;
 
 
 	// Use this for initialization
 	void Awake () {
-        snehettaMainScript = GetComponent<EnemyHeadhogMother>();
-        maxHealth = snehettaHealth;
-        Health_RestoreHealthToMax();    
+        snehettaMainScript = GetComponent<EnemySnehetta>();
+        currentHealth = mHealthScript.health;
+        mHealthScript.Health_RestoreHealthToMax(currentHealth);    
     }
 
     public void Snehetta_TakeDamage(int damage)
     {
-        TakeDamage(damage);
+        mHealthScript.TakeDamage(damage, currentHealth);
         snehettaMainScript.NextPhase();
     }
 

@@ -3,21 +3,33 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class HealthPlayer : HealthActor {
+public class HealthPlayer : MonoBehaviour {
+
+    private int currentHealth = 10;
 
     [SerializeField]
-    private int playerHealth;
+    private HealthType mHealthScript = null;
+
+    private PlayerMovement mPlayerMovement = null;
 
     void Awake()
     {
-        mHealth = playerHealth;
-        maxHealth = mHealth;
+        mPlayerMovement = transform.parent.GetComponent<PlayerMovement>();
+        currentHealth = mHealthScript.health;
     }
 
-    public void Player_TakingDamage(int damage)
+    public void Player_TakingDamage(int damage, bool includeKnockback, Vector3 knockDirection)
     {
-        TakeDamage(damage);
-        if (Health_CheckIfDead())
+        if (!includeKnockback)
+            mHealthScript.TakeDamage(damage, currentHealth);
+        else if(includeKnockback)
+        {
+            mHealthScript.TakeDamage(damage, currentHealth);
+            mPlayerMovement.SetMovementVector(knockDirection);
+            mPlayerMovement.SetState(PlayerMovement.State.Stun);
+
+        }
+        if (mHealthScript.Health_CheckIfDead(currentHealth))
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }

@@ -10,7 +10,7 @@ public class SnowballerMotherAnimations : MonoBehaviour {
 
 	void Start () {
         mAnimator = GetComponent<Animator>();
-        transform.parent.GetComponent<EnemyHeadhogMother>().Breath_DisableVisuals();
+        transform.parent.GetComponent<EnemySnehetta>().Breath_DisableVisuals();
 
     }
 
@@ -44,12 +44,12 @@ public class SnowballerMotherAnimations : MonoBehaviour {
 
     public void StartBreathVisuals()
     {
-        transform.parent.GetComponent<EnemyHeadhogMother>().Breath_EnableVisuals();
+        transform.parent.GetComponent<EnemySnehetta>().Breath_EnableVisuals();
     }
 
     public void StopBreath()
     {
-        transform.parent.GetComponent<EnemyHeadhogMother>().Breath_DisableVisuals();
+        transform.parent.GetComponent<EnemySnehetta>().Breath_DisableVisuals();
     }
 
 #endregion
@@ -73,6 +73,11 @@ public class SnowballerMotherAnimations : MonoBehaviour {
     #endregion
 
     #region crystal
+
+    [SerializeField]
+    private Material crystalMaterial = null;
+
+
     public void Snehetta_ActivateCrystalCollider()
     {
         crystalCollisionBox.SetActive(true);
@@ -82,6 +87,16 @@ public class SnowballerMotherAnimations : MonoBehaviour {
     public void Snehetta_DeactivateCrystalCollider()
     {
         crystalCollisionBox.SetActive(false);
+    }
+
+    public void Snehetta_IncreaseCrystalBrightness()
+    {
+        crystalMaterial.SetFloat("_Glow", 2.0f);
+    }
+
+    public void Snehetta_DecreaseCrystalBrightness()
+    {
+        crystalMaterial.SetFloat("_Glow", 1f);
     }
 
 
@@ -103,11 +118,13 @@ public class SnowballerMotherAnimations : MonoBehaviour {
 
     private void Awake()
     {
-        inhaleParticle = transform.parent.transform.GetChild(3).gameObject;
+        inhaleParticle = transform.parent.transform.GetChild(4).gameObject;
         inhaleParticle.SetActive(false);
 
 
-        crystalCollisionBox = transform.parent.transform.GetChild(4).gameObject;
+        crystalCollisionBox = transform.parent.transform.GetChild(5).gameObject;
         crystalCollisionBox.SetActive(false);
+
+        crystalMaterial = transform.GetChild(1).transform.GetChild(3).GetComponent<SkinnedMeshRenderer>().materials[0];
     }
 }

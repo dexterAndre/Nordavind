@@ -31,5 +31,15 @@ public class HedgehogAnimations : MonoBehaviour {
         mAnimator.SetTrigger("gotHit");
     }
 
+    public void Animation_Recharging()
+    {
+        mAnimator.SetTrigger("timeForRecharging");
+    }
+
+    public void Animation_StartExplosion()
+    {
+        mAnimator.SetTrigger("Explode");
+    }
+
 
 }

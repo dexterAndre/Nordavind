@@ -2,36 +2,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HealthHedgehog : HealthActor {
+public class HealthHedgehog : MonoBehaviour {
+
+    private int currentHealth;
 
     [SerializeField]
-    private int hedgehogHealth;
+    private HealthType mHealthScript;
 
     private EnemyHedgehog mBehaviorScript = null;
 
 	void Awake () {
-        mHealth = hedgehogHealth;
-        maxHealth = mHealth;
+        currentHealth = mHealthScript.health;
         mBehaviorScript = GetComponent<EnemyHedgehog>();
     }
 
     public void Hedgehog_Takingdamage(int damage)
     {
-        TakeDamage(damage);
-        if (Health_CheckIfDead())
+        mHealthScript.TakeDamage(damage, currentHealth);
+        if (mHealthScript.Health_CheckIfDead(currentHealth))
         {
-            mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.Exploding);
-        }
-        else
-        {
-            if (mBehaviorScript.GetCurrentStance() == EnemyHedgehog.TypeOfStances.Sprinting)
-            {
-                mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.ChargingUp);
-            }
-            else if (mBehaviorScript.GetCurrentStance() != EnemyHedgehog.TypeOfStances.ChargingUp && mBehaviorScript.GetCurrentStance() != EnemyHedgehog.TypeOfStances.Exploding)
-            {
-                mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.Scared);
-            }
+            mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.ChargingUp);
         }
     }
 
