@@ -58,6 +58,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)]
     private float mRotationSpeed = 0.3f;
+    [Header("Lock-On")]
+    [SerializeField]
+    private Transform mLockonTarget = null;
+    public void SetLockonTarget(Transform target) { mLockonTarget = target; }
+    private Vector3 mForwardLockonPersistent = Vector3.zero;
+    public void SetForwardLockonPersistent(Vector3 fwd) { mForwardLockonPersistent = fwd; }
     #endregion
     #region Stun
     [Header("Stun")]
@@ -414,6 +420,26 @@ public class PlayerMovement : MonoBehaviour
                 }
             case State.Lockon:
                 {
+                    // Storing movement vector
+                    mMovementVector = PlanarMovement(new Vector2(
+                        mInputManager.GetStickLeft().x,
+                        mInputManager.GetStickLeft().y));
+
+                    // Applying rotation
+                    if (mLockonTarget != null)
+                        transform.forward = Vector3.ProjectOnPlane(mLockonTarget.position - transform.position, Vector3.up).normalized;
+                    else if (mForwardLockonPersistent != Vector3.zero)
+                        transform.forward = mForwardLockonPersistent;
+
+                    // Applying constant downwards force
+                    mMovementVector += new Vector3(0f, Physics.gravity.y, 0f) * Time.fixedDeltaTime;
+
+                    // Applying movement
+                    mCharacterController.Move(
+                        mMovementVector
+                        * mWalkSpeed
+                        * Time.fixedDeltaTime);
+
                     break;
                 }
             case State.Hang:

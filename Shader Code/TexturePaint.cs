@@ -27,8 +27,8 @@ public class TexturePaint : MonoBehaviour
     private Texture2D mDecal;
     [SerializeField]
     private float mDecalDistance = 1.0f;
-    [SerializeField]
-    private bool mIsPaintingDecal = false;
+    //[SerializeField]
+    //private bool mIsPaintingDecal = false;
 
     [Header("Refereces")]
     [SerializeField]
@@ -43,8 +43,8 @@ public class TexturePaint : MonoBehaviour
     private bool mIsDebuggingDecal = true;
     [SerializeField]
     private Color mDebugBrushColor = new Color(255f / 255f, 125f / 255f, 0f / 255f, 255f / 255f);
-    [SerializeField]
-    private Color mDebugDecalColor = new Color(125f / 255f, 255f / 255f, 0f / 255f, 255f / 255f);
+    //[SerializeField]
+    //private Color mDebugDecalColor = new Color(125f / 255f, 255f / 255f, 0f / 255f, 255f / 255f);
 
 
 
