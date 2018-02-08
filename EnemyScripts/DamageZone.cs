@@ -24,13 +24,18 @@ public class DamageZone : MonoBehaviour {
         {
             if (other.transform.GetChild(2).GetComponent<HealthPlayer>() != null)
             {
-                other.transform.GetChild(2).GetComponent<HealthPlayer>().Player_TakingDamage(damage, shouldKnockPlayerIfHit, transform.forward * knockBackPower + other.transform.forward);
-                GameObject hitParticle = Instantiate(impactParticle, other.gameObject.transform.position, Quaternion.identity, null);
-                Destroy(hitParticle, 0.5f);
+                if (!other.transform.GetChild(2).GetComponent<InvincibilityFrames>().GetInvincibleState())
+                {
 
-                print("Player got hit by damage = " + damage);
+                    other.transform.GetChild(2).GetComponent<InvincibilityFrames>().StartInvincibility();
+
+                    other.transform.GetChild(2).GetComponent<HealthPlayer>().Player_TakingDamage(damage, shouldKnockPlayerIfHit, transform.forward * knockBackPower + other.transform.forward);
+                    GameObject hitParticle = Instantiate(impactParticle, other.gameObject.transform.position, Quaternion.identity, null);
+                    Destroy(hitParticle, 0.5f);
+
+                    print("Player got hit by damage = " + damage);
+                }
             }
-
         }
     }
 }

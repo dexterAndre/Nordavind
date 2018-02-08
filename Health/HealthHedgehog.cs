@@ -12,14 +12,14 @@ public class HealthHedgehog : MonoBehaviour {
     private EnemyHedgehog mBehaviorScript = null;
 
 	void Awake () {
-        currentHealth = mHealthScript.health;
+        mHealthScript.Health_RestoreHealthToMax();
         mBehaviorScript = GetComponent<EnemyHedgehog>();
     }
 
     public void Hedgehog_Takingdamage(int damage)
     {
-        mHealthScript.TakeDamage(damage, currentHealth);
-        if (mHealthScript.Health_CheckIfDead(currentHealth))
+        mHealthScript.TakeDamage(damage);
+        if (mHealthScript.Health_CheckIfDead())
         {
             mBehaviorScript.SetCurrentStance(EnemyHedgehog.TypeOfStances.ChargingUp);
         }

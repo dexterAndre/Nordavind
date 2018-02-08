@@ -29,7 +29,7 @@ public class PlayerAnimations : HeadAnimatorBehavior
         mAnimator.SetTrigger("Throw");
     }
 
-    private void AnimationLayer_SwitchWeightForScarf()
+    private void AnimationLayer_SwitchWeightForUpper()
     {
         mAnimator.SetLayerWeight(1, 0);
         mAnimator.SetLayerWeight(2, 1);
@@ -175,7 +175,7 @@ public class PlayerAnimations : HeadAnimatorBehavior
         if (mInputManager.GetTriggers().y != 0f && !throwUsed)
         {
             StartCoroutine(ThrowCooldown());
-            AnimationLayer_SwitchWeightForScarf();
+            AnimationLayer_SwitchWeightForUpper();
             Animation_ThrowSnowball();
             throwUsed = true;
         }

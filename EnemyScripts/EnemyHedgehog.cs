@@ -33,7 +33,7 @@ public class EnemyHedgehog : MonoBehaviour {
 
     #region Data - constants
     [SerializeField]
-    private EnemyWithNavigation savedVariables = null;
+    private EnemyWithNavigation hedgehogVariables = null;
 
     private NavMeshAgent mNavMeshAgent = null;
 
@@ -65,6 +65,8 @@ public class EnemyHedgehog : MonoBehaviour {
     private Vector3 sprintLocationGoal = Vector3.zero;
 
     private Vector3 targetForwardWithInput = Vector3.zero;
+
+    private bool isDying = false;
 
     #endregion
 
@@ -103,79 +105,65 @@ public class EnemyHedgehog : MonoBehaviour {
 
     private void CheckRangeOfTarget()
     {
-
-        float distanceToTarget  = (mTargetToFollow.position - transform.position).magnitude;
-
-        if (distanceToTarget < savedVariables.detectionRange && mCurrentStance == TypeOfStances.Idle)
+        if (!isDying)
         {
-            if (TargetInSight()) {
-                mCurrentStance = TypeOfStances.Following;
+            float distanceToTarget = (mTargetToFollow.position - transform.position).magnitude;
+
+            if (distanceToTarget < hedgehogVariables.detectionRange && mCurrentStance == TypeOfStances.Idle)
+            {
+                if (TargetInSight())
+                {
+                    mCurrentStance = TypeOfStances.Following;
+                }
+
             }
-                
+            else if (distanceToTarget < hedgehogVariables.combatRange && mCurrentStance == TypeOfStances.Following)
+            {
+                if (TargetInSight())
+                    mCurrentStance = TypeOfStances.Screaming;
+                else
+                    mCurrentStance = TypeOfStances.Idle;
+
+            }
+            else if ((sprintLocationGoal - transform.position).magnitude < 3f && mCurrentStance == TypeOfStances.Sprinting)
+            {
+                mCurrentStance = TypeOfStances.Recharging;
+            }
         }
-        else if (distanceToTarget < savedVariables.combatSpeed && mCurrentStance == TypeOfStances.Following)
-        {
-            if (TargetInSight())
-                mCurrentStance = TypeOfStances.Screaming;
-            else
-                mCurrentStance = TypeOfStances.Idle;
-            
-        }
-        else if ((sprintLocationGoal - transform.position).magnitude < 3f && mCurrentStance == TypeOfStances.Sprinting)
-        {
-            mCurrentStance = TypeOfStances.Recharging;
-        }
+
 
     }
 
+    #endregion
+
+    #region Movement - combat
+
+
     private void SetTargetToMoveTowards()
     {
-        targetForwardWithInput = new Vector3(
-            mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().x,
-            0f,
-            mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().z)
-            * savedVariables.forwardPredrictionSensetivity;
+
+        if (mTargetToFollow.GetComponent<PlayerMovement>().GetState() == PlayerMovement.State.Walk && hedgehogVariables.useForwardPrediction)
+        {
+            targetForwardWithInput = new Vector3(
+                mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().x,
+                0f,
+                mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().z)
+                * hedgehogVariables.forwardPredrictionSensetivity;
+        }
+        else
+            targetForwardWithInput = Vector3.zero;
+
 
         sprintLocationGoal =
             (mTargetToFollow.position - transform.position).normalized * 1.5f
             + mTargetToFollow.position
-            + targetForwardWithInput * savedVariables.forwardPredrictionSensetivity;
+            + targetForwardWithInput * hedgehogVariables.forwardPredrictionSensetivity;
 
         sprintLocationGoal = new Vector3(sprintLocationGoal.x, mTargetToFollow.position.y, sprintLocationGoal.z);
 
-        if (mNavMeshAgent.acceleration != savedVariables.acceleration)
-            mNavMeshAgent.acceleration = savedVariables.acceleration;
-
-        print("ACCELEARTION " + savedVariables.acceleration);
-        mNavMeshAgent.SetDestination(sprintLocationGoal);
-
-
-        #region FollowingTargetMovement - is commented away.
-        //}
-        //else if (type == 2)
-        //{
-        //    sprintLocationGoal -= lastForwardVectorOfTarget;
-
-        //    print("OLD" + lastForwardVectorOfTarget.x + " - x | " + lastForwardVectorOfTarget.z + " - z");
-        //    lastForwardVectorOfTarget = new Vector3(
-        //        mTargetToFollow.forward.x * mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().x,
-        //        0f,
-        //        mTargetToFollow.forward.z * mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().z)
-        //        * forwardPredrictionSensetivity;
-
-        //    print("NEW" + lastForwardVectorOfTarget.x + " - x | " + lastForwardVectorOfTarget.z + " - z");
-
-
-        //    sprintLocationGoal = (mTargetToFollow.position - transform.position).normalized * 5f + mTargetToFollow.position + lastForwardVectorOfTarget;
-
-        //    mNavMeshAgent.SetDestination(sprintLocationGoal);
-
-        //}
-        #endregion
     }
-
-
     #endregion
+
 
     #region ---Actions---
 
@@ -232,7 +220,10 @@ public class EnemyHedgehog : MonoBehaviour {
     private void Actions_Idle()
     {
         //Enveiroment behavior here, will become rather complex after a while.
-
+        if (mNavMeshAgent.acceleration != hedgehogVariables.normalAcceleration)
+            mNavMeshAgent.acceleration = hedgehogVariables.normalAcceleration;
+        if (mNavMeshAgent.speed != hedgehogVariables.normalSpeed)
+            mNavMeshAgent.speed = hedgehogVariables.normalSpeed;
         mNavMeshAgent.SetDestination(mIdleTarget);
     }
 
@@ -258,7 +249,7 @@ public class EnemyHedgehog : MonoBehaviour {
         }
         else
         {
-            mNavMeshAgent.speed = savedVariables.combatSpeed;
+            mNavMeshAgent.speed = hedgehogVariables.combatSpeed;
         }
     }
 
@@ -266,7 +257,7 @@ public class EnemyHedgehog : MonoBehaviour {
     {
         mCurrentStance = TypeOfStances.Idle;
         gotScared = false;
-        mNavMeshAgent.speed = savedVariables.normalSpeed;   
+        mNavMeshAgent.speed = hedgehogVariables.normalSpeed;   
     }
     #endregion
 
@@ -279,8 +270,8 @@ public class EnemyHedgehog : MonoBehaviour {
     {
         mNavMeshAgent.SetDestination(mTargetToFollow.position);
 
-        if(mNavMeshAgent.speed != savedVariables.normalSpeed)
-            mNavMeshAgent.speed = savedVariables.normalSpeed;
+        if(mNavMeshAgent.speed != hedgehogVariables.normalSpeed)
+            mNavMeshAgent.speed = hedgehogVariables.normalSpeed;
 
         //Debugging if player ever LOS the target.
         if (!TargetInSight())
@@ -330,7 +321,7 @@ public class EnemyHedgehog : MonoBehaviour {
             {
                 mCurrentStance = TypeOfStances.Idle;
                 mAnimations.Animation_SetSprintState(false);
-                durationOfScream = 1f;
+                durationOfScream = 2f;
                 screamStarted = false;
             }
         }
@@ -343,17 +334,43 @@ public class EnemyHedgehog : MonoBehaviour {
 
     #region Sprinting
 
+    private float durationOfSprint = 2f;
+
     /// <summary>
     /// What happens during the sprinting-state.
     /// </summary>
     private void Actions_Sprinting()
     {
-        if (mNavMeshAgent.speed != savedVariables.combatSpeed)
+        if (mNavMeshAgent.speed != hedgehogVariables.combatSpeed)
         {
             damagingAura.SetActive(true);
-            mNavMeshAgent.speed = savedVariables.combatSpeed;
-            print("SPEED " + mNavMeshAgent.speed);
+
+            if (mNavMeshAgent.acceleration != hedgehogVariables.combatAcceleration)
+                mNavMeshAgent.acceleration = hedgehogVariables.combatAcceleration;
+
+            if (mNavMeshAgent.speed != hedgehogVariables.combatSpeed)
+                mNavMeshAgent.speed = hedgehogVariables.combatSpeed;
+
+
+            durationOfSprint = (mTargetToFollow.transform.position - transform.position).magnitude * Time.deltaTime;
+            durationOfSprint += 1f;
+            print(durationOfSprint + " - SprintDuration");
+
         }
+
+        if (durationOfSprint > 0)
+        {
+            SetTargetToMoveTowards(); //Setting target
+
+            mNavMeshAgent.SetDestination(sprintLocationGoal);
+
+            durationOfSprint -= 1 * Time.deltaTime;
+        }
+        else
+        {
+            mCurrentStance = TypeOfStances.Recharging;
+        }
+
 
     }
     #endregion
@@ -379,20 +396,14 @@ public class EnemyHedgehog : MonoBehaviour {
 
         if (durationOfRecharge >= 0f)
         {
-            transform.LookAt(new Vector3(mTargetToFollow.position.x, transform.position.y, mTargetToFollow.position.z));
+            //transform.LookAt(new Vector3(mTargetToFollow.position.x, transform.position.y, mTargetToFollow.position.z));
             durationOfRecharge -= Time.deltaTime;
         }
-        else if (TargetInSight())
+        else
         {
             SetTargetToMoveTowards();
             rechargingParticleEffect.SetActive(false);
             mCurrentStance = TypeOfStances.Sprinting;
-        }
-        else
-        {
-            mNavMeshAgent.acceleration = savedVariables.acceleration;
-            rechargingParticleEffect.SetActive(false);
-            mCurrentStance = TypeOfStances.Idle;
         }
     }
 
@@ -417,6 +428,7 @@ public class EnemyHedgehog : MonoBehaviour {
             mNavMeshAgent.acceleration = 100f;
             mNavMeshAgent.speed = 0f;
             mAnimations.Animation_StartExplosion();
+            isDying = true;
         }
             
 
@@ -446,14 +458,15 @@ public class EnemyHedgehog : MonoBehaviour {
 
 
     /// <summary>
-        /// What happens during the exploding-state.
-        /// </summary>
+    /// What happens during the exploding-state.
+    /// </summary>
     private void Actions_Exploding()
     {
         GameObject hedgehogDeathExplosion = Instantiate(mExplosionParticle, transform.position, Quaternion.identity, null);
         DealDamageToEnemy();
+        Destroy(hedgehogDeathExplosion, 1f);
         Destroy(this.gameObject);
-    }
+    }    
 
     private void DealDamageToEnemy()
     {
@@ -486,15 +499,15 @@ public class EnemyHedgehog : MonoBehaviour {
         {
             Gizmos.color = Color.yellow;
             Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.2f);
-            Gizmos.DrawSphere(transform.position, savedVariables.detectionRange);
+            Gizmos.DrawSphere(transform.position, hedgehogVariables.detectionRange);
 
             Gizmos.color = Color.blue;
             Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.2f);
-            Gizmos.DrawSphere(transform.position, savedVariables.combatRange);
+            Gizmos.DrawSphere(transform.position, hedgehogVariables.combatRange);
 
             Gizmos.color = Color.green;
             Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.5f);
-            Gizmos.DrawWireSphere(transform.position, savedVariables.attackingRange);
+            Gizmos.DrawWireSphere(transform.position, hedgehogVariables.attackingRange);
 
             Gizmos.color = Color.red;
             Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.3f);
@@ -508,7 +521,8 @@ public class EnemyHedgehog : MonoBehaviour {
     [Header("Debugging for direction of hedgehog")]
     [SerializeField]
     private LineRenderer debugingLine = null;
-
+    [SerializeField]
+    private bool useDebugingLinesForDirection = false;
     private void Debuging_drawLineForDirection()
     {
         debugingLine.SetPosition(0, transform.position);
@@ -521,7 +535,7 @@ public class EnemyHedgehog : MonoBehaviour {
             new Vector3(mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().x,
             0f,
             mTargetToFollow.GetComponent<PlayerMovement>().GetMovementVector().z
-            *savedVariables.forwardPredrictionSensetivity);
+            *hedgehogVariables.forwardPredrictionSensetivity);
 
         newPos = new Vector3(newPos.x, mTargetToFollow.position.y, newPos.z);
 
@@ -541,12 +555,16 @@ public class EnemyHedgehog : MonoBehaviour {
         rechargingParticleEffect.SetActive(false);
         damagingAura.SetActive(false);
 
+        if (mTargetToFollow == null)
+            mTargetToFollow = GameObject.FindGameObjectWithTag("Player").GetComponent<Transform>();
     }
 
     private void Update()
     {
         WhatToDo();
-        Debuging_drawLineForDirection();
+
+        if(useDebugingLinesForDirection)
+            Debuging_drawLineForDirection();
     }
 
 #endregion

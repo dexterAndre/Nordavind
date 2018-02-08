@@ -5,23 +5,29 @@ using UnityEngine;
 [CreateAssetMenu]
 public class HealthType : ScriptableObject {
 
-    public int health;
+    private int health;
+    public int maxHealth;
 
-    public void TakeDamage(int damage, int currentHealth)
+    public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
+        health -= damage;
     }
 
-    public void Health_RestoreHealthToMax(int currentHealth)
+    public void Health_RestoreHealthToMax()
     {
-        currentHealth = health;
+        health = maxHealth;
     }
 
-    public bool Health_CheckIfDead(int currentHealth)
+    public bool Health_CheckIfDead()
     {
-        if (currentHealth <= 0)
+        if (health <= 0)
             return true;
         else
             return false;
+    }
+
+    public int Health_GetHealth()
+    {
+        return health;
     }
 }

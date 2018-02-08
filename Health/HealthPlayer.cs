@@ -15,21 +15,23 @@ public class HealthPlayer : MonoBehaviour {
     void Awake()
     {
         mPlayerMovement = transform.parent.GetComponent<PlayerMovement>();
-        currentHealth = mHealthScript.health;
+        mHealthScript.Health_RestoreHealthToMax();
+       // print(mHealthScript.Health_GetHealth() + " starting health");
     }
 
     public void Player_TakingDamage(int damage, bool includeKnockback, Vector3 knockDirection)
     {
         if (!includeKnockback)
-            mHealthScript.TakeDamage(damage, currentHealth);
+            mHealthScript.TakeDamage(damage);
         else if(includeKnockback)
         {
-            mHealthScript.TakeDamage(damage, currentHealth);
+            mHealthScript.TakeDamage(damage);
+            //print(mHealthScript.Health_GetHealth() + " is the current health");
             mPlayerMovement.SetMovementVector(knockDirection);
             mPlayerMovement.SetState(PlayerMovement.State.Stun);
 
         }
-        if (mHealthScript.Health_CheckIfDead(currentHealth))
+        if (mHealthScript.Health_CheckIfDead())
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }

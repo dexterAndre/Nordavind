@@ -9,19 +9,16 @@ public class HealthSnehetta : MonoBehaviour {
     [SerializeField]
     private HealthType mHealthScript = null;
 
-    private int currentHealth;
-
-
 	// Use this for initialization
 	void Awake () {
         snehettaMainScript = GetComponent<EnemySnehetta>();
-        currentHealth = mHealthScript.health;
-        mHealthScript.Health_RestoreHealthToMax(currentHealth);    
+        mHealthScript.Health_RestoreHealthToMax();
+        mHealthScript.Health_RestoreHealthToMax();    
     }
 
     public void Snehetta_TakeDamage(int damage)
     {
-        mHealthScript.TakeDamage(damage, currentHealth);
+        mHealthScript.TakeDamage(damage);
         snehettaMainScript.NextPhase();
     }
 
