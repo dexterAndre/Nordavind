@@ -10,12 +10,13 @@ public class PlayerMovement : MonoBehaviour
         - Use UnityEvent and Delegates
         - Remove [SerializeField] on #region References code. Not interesting. 
         - Add god descriptions for all functions. "/// summary"
-        - Remove old versions of gamepay scripts, rename "GameplayScript2" with "GameplayScript". 
     */
 
     /*
         To do: 
         - Delete unused getter / setter functions
+        - Can still roll while in Lock-On
+        - Can not roll into the air
     */
 
     #region State
@@ -426,7 +427,7 @@ public class PlayerMovement : MonoBehaviour
                         mInputManager.GetStickLeft().y));
 
                     // Applying rotation
-                    if (mLockonTarget != null)
+                    if (mLockonTarget != null/* && mInputManager.GetStickRight().x == 0.0f*/)
                         transform.forward = Vector3.ProjectOnPlane(mLockonTarget.position - transform.position, Vector3.up).normalized;
                     else if (mForwardLockonPersistent != Vector3.zero)
                         transform.forward = mForwardLockonPersistent;

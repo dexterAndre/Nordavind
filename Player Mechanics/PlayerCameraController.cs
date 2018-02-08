@@ -11,14 +11,28 @@ public class PlayerCameraController : MonoBehaviour
         - Bug: when transitioning from aim to standard, if you rotate avatar, camera behaves wonkily
         - Store camera parameters so that when transitioning, you don't get abruptly rotated
         - When moving sideways while aiming, the camera lerps to catch up. This makes it difficult to aim until it's in resting position. 
-        - Store a map of <Enemy, ProjectedVector> while holding LT. This updates until you release LT, after which it clears itself. 
-        - Implement automatic throwing while in lock-on
+        - Make separate state machine for camera
+        - Obscure objects that are between player and camera (shader)
 
         Upgrade guide: 
         - Will change state name from "Throw" to "Look"
         - Will change state name from "Lockon" to "Target"
         - - Also change the comments and variable names (also in hierarchy). 
+        - Add sphere collider to player's chile "Player Camera"
     */
+    [System.Serializable]
+    public enum State
+    {
+        Standard, 
+        Look,
+        Target
+    };
+    [Header("State")]
+    [SerializeField]
+    private State mState = State.Standard;
+    public State GetState() { return mState; }
+    public void SetState(State state) { mState = state; }
+
     [Header("Camera Settings")]
     [SerializeField]
     private float mTransitionTime = 0.5f;
@@ -45,12 +59,22 @@ public class PlayerCameraController : MonoBehaviour
     [Range(0.0f, 1.0f)]
     private float mLockonParameter = 0.5f;
     [SerializeField]
-    private List<Transform> mLockonList = new List<Transform>();
+    public List<Transform> mLockonList = new List<Transform>();
+    [SerializeField]
+    public Dictionary<Transform, Vector3> mLockonDictionary = new Dictionary<Transform, Vector3>();
     [SerializeField]
     private float mLockonReticleHeight = 2f;
     [SerializeField]
+    private float mLockonReticleScale = 5f;
+    [SerializeField]
     [Range(0f, 50f)]
     private float mLockonDistanceMax = 15f;
+    [SerializeField]
+    private float mLockonTargetsUpdateCycle = 0.1f;
+    private float mLockonTargetUpdateTimer = 0f;
+    [SerializeField]
+    private float mLockonTargetSwitchCooldown = 0.5f;
+    private float mLockonTargetSwitchTimer = 0f;
 
     [Header("Bounds")]
     [SerializeField]
@@ -116,13 +140,14 @@ public class PlayerCameraController : MonoBehaviour
         // Sets walk speed at awake. Does not respond to real-time changes. 
         mWalkSpeedOriginal = mPlayerMovement.GetWalkSpeed();
 
+        // Aim reticle
         if (mReticle == null)
             mReticle = transform
                 .GetChild(3).transform
                 .GetChild(1).transform
                 .GetChild(0).GetComponent<SpriteRenderer>();
-        mReticle.enabled = false;
         mReticlePositionInitial = mReticle.transform;
+        mReticle.enabled = false;
 
         // Aim target
         if (mAimedThrowSpawn == null)
@@ -209,6 +234,16 @@ public class PlayerCameraController : MonoBehaviour
     // Player Input Handling
     private void Update()
     {
+        // Cooldowns
+        if (mLockonTargetSwitchTimer > 0.0f)
+        {
+            mLockonTargetSwitchTimer += Time.deltaTime;
+            if (mLockonTargetSwitchTimer >= mLockonTargetSwitchCooldown)
+            {
+                mLockonTargetSwitchTimer = 0f;
+            }
+        }
+
         // Aim mode
         if (Input.GetButtonDown("ClickStickR"))
         {
@@ -303,54 +338,16 @@ public class PlayerCameraController : MonoBehaviour
                 // Signaling state machine
                 mPlayerMovement.SetState(PlayerMovement.State.Lockon);
 
-                // Clean up the enemy list
-                mLockonList.Clear();
-
-                // Collision test
-                LayerMask enemyLayer = 1 << 30;
-                RaycastHit[] enemies = Physics.SphereCastAll(
-                    transform.position,
-                    mLockonDistanceMax,
-                    transform.forward,
-                    0,
-                    enemyLayer);
-                //RaycastHit[] enemies = Physics.SphereCastAll(
-                //    transform.position,
-                //    mLockonDistanceMax,
-                //    transform.forward,
-                //    0f,
-                //    ~LayerMask.NameToLayer("Enemy"));
+                // Retrieving list of nearby enemies (enemy layer is at 30)
+                FindCloseObjects(transform.position, mLockonDistanceMax, 1 << 30, true);
                 
                 // If enemies are nearby and visible...
-                if (enemies.Length > 0)
+                if (/*mLockonList.Count > 0*/ mLockonDictionary.Count > 0)
                 {
-                    Transform closestEnemy = null;
-
-                    // Handling list of enemies
-                    foreach (RaycastHit obj in enemies)
-                    {
-                        // Later on, do selection here, and delete the entire EnemyList. 
-                        // Use it for now to debug. 
-                        Renderer rend = obj.transform.gameObject.GetComponent<Renderer>();
-                        // If renderer exists
-                        if (rend != null)
-                        {
-                            // If the renderer is visible
-                            if (rend.isVisible)
-                            {
-                                // If the object is actually in front (.isVisible sometimes give false positives)
-                                if (Vector3.Dot(Camera.main.transform.forward, obj.transform.position - Camera.main.transform.position) > 0.0f)
-                                {
-                                    mLockonList.Add(obj.transform);
-                                }
-                            }
-                        }
-                    }
-
-                    closestEnemy = SelectClosestToRay(
-                        transform.position,
+                    Transform closestEnemy = SelectClosestToRay(
+                        Camera.main.transform.position,
                         Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up),
-                        mLockonList);
+                        /*mLockonList*/ mLockonDictionary);
 
                     Vector3 enemyPos = closestEnemy.position;
                     mCameraLockonLookat.position = transform.position + mLockonParameter * (enemyPos - transform.position);
@@ -363,6 +360,7 @@ public class PlayerCameraController : MonoBehaviour
                     // Target visualization
                     mReticle.enabled = true;
                     mReticle.transform.position = mLockonTarget.position + Vector3.up * mLockonReticleHeight;
+                    mReticle.transform.localScale = new Vector3(mLockonReticleScale, mLockonReticleScale, mLockonReticleScale);
                 }
                 // If no enemy within sight...
                 else
@@ -398,9 +396,10 @@ public class PlayerCameraController : MonoBehaviour
                 }
             }
         }
-        // Lock-on-to-walk
-        else if (mPlayerMovement.GetState() == PlayerMovement.State.Lockon)
+        // From lock-on
+        if (mPlayerMovement.GetState() == PlayerMovement.State.Lockon)
         {
+            // Lock-on-to-walk
             if (mInputManager.GetTriggers().x == 0.0f)
             {
                 // Debug
@@ -411,42 +410,54 @@ public class PlayerCameraController : MonoBehaviour
 
                 mPlayerMovement.SetState(PlayerMovement.State.Walk);
 
-                // Movement
-                mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);   // might fix later
-
-                // Enabling standard camera, disabling aim camera
-                mCameraStandard.Priority = 10;
-                mCameraLockon.Priority = 1;
-                mCameraAim.Priority = 1;
-
-                // Resetting standard camera follow target
-                mCameraStandard.m_Follow = transform;
-                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, false));
-
-                // Resetting lock-on persistent forward direction
-                mPlayerMovement.SetForwardLockonPersistent(Vector3.zero);
-
-                // Resetting mPlayerMovement's mLockonTarget
-                mPlayerMovement.SetLockonTarget(null);
-
-                // Enabling reticle
-                mReticle.enabled = false;
-                mReticle.transform.position = mReticlePositionInitial.position;
-
-                // Setting the vertical parameter to what is was before aim mode
-                mCameraStandard.m_YAxis.Value = mCameraStandardYAxis;
-                mCameraStandardYAxis = 0.5f;
-
-                // Resetting standard camera follow target
-                mCameraStandard.m_Follow = transform;
-                mCameraStandard.m_LookAt = mCameraStandardFocus;
-                StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, false));
+                LockonToWalk();
 
                 // Debug
                 if (mIsDebugging)
                 {
                     print("MAN TRANSITION: \t LOCKON \t -> \t WALK. ");
                 }
+            }
+            
+            // Switch targets
+            if (mInputManager.GetStickRight().x != 0.0f && mLockonDictionary.Count > 0 && mLockonTargetSwitchTimer == 0f)
+            {
+                int i = 0;
+                float closestDistance = 0.0f;
+                Transform closestEnemy = mLockonTarget;
+
+                foreach (KeyValuePair<Transform, Vector3> obj in mLockonDictionary)
+                {
+                    // Cheap way of testing if the object is in the direction you're pointing the right stick
+                    if (obj.Key == mLockonTarget)
+                    {
+                        closestDistance = obj.Value.sqrMagnitude;
+                        closestEnemy = obj.Key;
+                    }
+
+                    float dot = Vector3.Dot(Camera.main.transform.right * mInputManager.GetStickRight().x, obj.Value);
+                    if (dot < 0.0f)
+                    {
+                        if (obj.Value.sqrMagnitude < closestDistance)
+                        {
+                            closestDistance = obj.Value.sqrMagnitude;
+                            closestEnemy = obj.Key;
+                        }
+                    }
+                    i++;
+                }
+
+                // Change target
+                if (closestEnemy != null)
+                {
+                    Vector3 enemyPos = closestEnemy.position;
+                    //mCameraLockonLookat.position = transform.position + mLockonParameter * (enemyPos - transform.position);
+                    mLockonTarget = closestEnemy;
+                    mPlayerMovement.SetLockonTarget(mLockonTarget);
+                    //mCameraLockonLookat.position = mLockonTarget.position;
+                    //transform.forward = Vector3.ProjectOnPlane(mLockonTarget.position - transform.position, Vector3.up);
+                }
+                mLockonTargetSwitchTimer += Time.deltaTime;
             }
         }
     }
@@ -516,6 +527,14 @@ public class PlayerCameraController : MonoBehaviour
                     = mCameraLockonRigMeasurements[i, 1]
                     * mRadiusScale;
             }
+
+            // Updating targets
+            UpdateTargetList();
+
+            // Position camera look-at position
+            mCameraLockonLookat.position = transform.position + mLockonParameter * (mLockonTarget.position - transform.position);
+            mCameraLockon.LookAt = mCameraLockonLookat;
+            mReticle.transform.position = mLockonTarget.position + Vector3.up * mLockonReticleHeight;
 
             // Debug
             VisualDebug();
@@ -595,30 +614,134 @@ public class PlayerCameraController : MonoBehaviour
         }
     }
 
-    private Transform SelectClosestToRay(Vector3 pos, Vector3 forward, List<Transform> objects)
+    private Transform SelectClosestToRay(Vector3 pos, Vector3 forward, /*List<Transform> objects*/ Dictionary<Transform, Vector3> objects)
     {
-        int closestIndex = 0;
+        Transform closestTransform = null;
         float closestDistance = 0.0f;
         Vector3 PO;
         Vector3 projected;
         float projectedMagnitude;
 
-        for (int i = 0; i < objects.Count; i++)
+        int i = 0;
+        foreach (KeyValuePair<Transform, Vector3> obj in objects)
         {
             // Player-to-object
-            PO = objects[i].position - pos;
-            // PO rejected onto foward vector
-            projected = PO - (Vector3.Dot(PO, forward) / (forward.magnitude * forward.magnitude)) * forward;
-            projectedMagnitude = projected.magnitude;
+            PO = obj.Key.position - pos;
+
+            // PO rejected onto forward vector
+            projected = PO - (Vector3.Dot(PO, forward) / (forward.sqrMagnitude)) * forward;
+            projectedMagnitude = projected.sqrMagnitude;
+            if (i == 0)
+            {
+                closestDistance = projectedMagnitude;
+                closestTransform = obj.Key;
+            }
 
             if (projectedMagnitude < closestDistance)
             {
                 closestDistance = projectedMagnitude;
-                closestIndex = i;
+                closestTransform = obj.Key;
+            }
+            i++;
+        }
+        return closestTransform;
+
+        //for (int i = 0; i < objects.Count; i++)
+        //{
+        //    // Player-to-object
+        //    PO = objects[].position - pos;
+        //    // PO rejected onto foward vector
+        //    projected = PO - (Vector3.Dot(PO, forward) / (forward.sqrMagnitude)) * forward;
+        //    projectedMagnitude = projected.sqrMagnitude;
+
+        //    if (projectedMagnitude < closestDistance)
+        //    {
+        //        closestDistance = projectedMagnitude;
+        //        closestIndex = i;
+        //    }
+        //}
+
+        //return objects[closestIndex];
+    }
+
+    private void FindCloseObjects(Vector3 pos, float distance, int layerMask, bool frustumCull)
+    {
+        // Collision test
+        RaycastHit[] enemies = Physics.SphereCastAll(
+            pos,
+            distance,
+            transform.forward,
+            0,
+            layerMask);
+
+        // If enemies are nearby and visible...
+        if (enemies.Length > 0)
+        {
+            // Handling list of enemies
+            foreach (RaycastHit obj in enemies)
+            {
+                // Used for storing the rejected vectors in dictionary
+                Vector3 fwd = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
+
+                if (frustumCull)
+                {
+                                    
+                    // If renderer exists
+                    Renderer rend = obj.transform.gameObject.GetComponent<Renderer>();
+                    if (rend != null)
+                    {
+                        // If the renderer is visible
+                        if (rend.isVisible)
+                        {
+                            // If the object is actually in front (.isVisible sometimes give false positives)
+                            if (Vector3.Dot(Camera.main.transform.forward, obj.transform.position - transform.position) > 0.0f)
+                            {
+                                // Assigns the transform along with its rejected vector
+                                Vector3 PO;
+                                Vector3 projected;
+
+                                // Player-to-object
+                                PO = obj.transform.position - pos;
+                                // PO rejected onto foward vector
+                                projected = -(PO - (Vector3.Dot(PO, fwd) / (fwd.sqrMagnitude)) * fwd);
+
+                                //mLockonList.Add(obj.transform);
+                                mLockonDictionary.Add(obj.transform, projected);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Assigns the transform along with its rejected vector
+                    Vector3 PO;
+                    Vector3 projected;
+
+                    // Player-to-object
+                    PO = obj.transform.position - pos;
+                    // PO rejected onto foward vector
+                    projected = PO - (Vector3.Dot(PO, fwd) / (fwd.sqrMagnitude)) * fwd;
+
+                    //mLockonList.Add(obj.transform);
+                    mLockonDictionary.Add(obj.transform, projected);
+                }
             }
         }
+    }
 
-        return objects[closestIndex];
+    private void UpdateTargetList()
+    {
+        // Handling timers
+        mLockonTargetUpdateTimer += Time.deltaTime;
+        if (mLockonTargetUpdateTimer >= mLockonTargetsUpdateCycle)
+        {
+            // Clearing list before adding new elements
+            //mLockonList.Clear();
+            mLockonDictionary.Clear();
+
+            FindCloseObjects(transform.position, mLockonDistanceMax, 1 << 30, true);
+            mLockonTargetUpdateTimer = 0f;
+        }
     }
 
     private void VisualDebug()
@@ -628,21 +751,78 @@ public class PlayerCameraController : MonoBehaviour
             // Lock-on target selection
             if (mInputManager.GetTriggers().x < 0.0f)
             {
-                Vector3 fwd = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
-                Debug.DrawLine(transform.position, transform.position + fwd * mLockonDistanceMax, mLockonColor);
-                Vector3 PO;
-                Vector3 projectedVector;
+                //Vector3 fwd = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
+                //Debug.DrawLine(transform.position, transform.position + fwd * mLockonDistanceMax, mLockonColor);
+                //Vector3 PO;
+                //Vector3 projectedVector;
 
-                if (mLockonList.Count > 0)
+                //if (/*mLockonList.Count > 0*/mLockonDictionary.Count > 0)
+                //{
+                //    //foreach (Transform obj in mLockonList)
+                //    //{
+                //    //    PO = obj.position - transform.position;
+                //    //    projectedVector = PO - ((Vector3.Dot(PO, fwd)) / (fwd.sqrMagnitude)) * fwd;
+                //    //    Debug.DrawLine(obj.position, obj.position - projectedVector, mLockonColor);
+                //    //}
+                //    foreach (KeyValuePair<Transform, Vector3> obj in mLockonDictionary)
+                //    {
+                //        PO = obj.Key.position - transform.position;
+                //        projectedVector = PO - ((Vector3.Dot(PO, fwd)) / (fwd.sqrMagnitude)) * fwd;
+                //        Debug.DrawLine(obj.Key.position, obj.Key.position - projectedVector, mLockonColor);
+                //    }
+                //}
+
+                if (mLockonDictionary.Count > 0)
                 {
-                    foreach (Transform obj in mLockonList)
+                    foreach (KeyValuePair<Transform, Vector3> obj in mLockonDictionary)
                     {
-                        PO = obj.position - transform.position;
-                        projectedVector = PO - ((Vector3.Dot(PO, fwd)) / (fwd.magnitude * fwd.magnitude)) * fwd;
-                        Debug.DrawLine(obj.position, obj.position - projectedVector, mLockonColor);
+                        Debug.DrawLine(obj.Key.position, obj.Key.position + obj.Value, mLockonColor);
                     }
                 }
             }
         }
+    }
+
+    public void LockonToWalk()
+    {
+        // Movement
+        mPlayerMovement.SetWalkSpeed(mWalkSpeedOriginal);   // might fix later
+
+        // Enabling standard camera, disabling aim camera
+        mCameraStandard.Priority = 10;
+        mCameraLockon.Priority = 1;
+        mCameraAim.Priority = 1;
+
+        // Resetting standard camera follow target
+        mCameraStandard.m_Follow = transform;
+        StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, true));
+
+        // Resetting lock-on persistent forward direction
+        mPlayerMovement.SetForwardLockonPersistent(Vector3.zero);
+
+        // Resetting mPlayerMovement's mLockonTarget
+        mPlayerMovement.SetLockonTarget(null);
+
+        // Disabling reticle
+        mReticle.enabled = false;
+        mReticle.transform.position = mReticlePositionInitial.position;
+        mReticle.transform.localScale = Vector3.one;
+
+        // Clearing lockon target list
+        //mLockonList.Clear();
+        mLockonDictionary.Clear();
+
+        // Clearing lockon target
+        mLockonTarget = null;
+        mPlayerMovement.SetLockonTarget(mLockonTarget);
+
+        // Setting the vertical parameter to what is was before aim mode
+        mCameraStandard.m_YAxis.Value = mCameraStandardYAxis;
+        mCameraStandardYAxis = 0.5f;
+
+        // Resetting standard camera follow target
+        mCameraStandard.m_Follow = transform;
+        mCameraStandard.m_LookAt = mCameraStandardFocus;
+        StartCoroutine(SetBindingMode(CinemachineTransposer.BindingMode.SimpleFollowWithWorldUp, false));
     }
 }

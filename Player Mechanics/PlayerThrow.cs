@@ -9,6 +9,7 @@ public class PlayerThrow : MonoBehaviour
         To do: 
         - Get lock-on to work! 
         - Move camera-related stuff to PlayerCameraController
+        - Actually throw along a parabola, instead of just straight
     */
 
     //[Header("Movement")]
@@ -66,8 +67,8 @@ public class PlayerThrow : MonoBehaviour
     //private CharacterController mCharacterController = null;
     [SerializeField]
     private InputManager mInputManager = null;
-    //[SerializeField]
-    //private PlayerCameraController mCameraController = null;
+    [SerializeField]
+    private PlayerCameraController mCameraController = null;
     //[SerializeField]
     //private CinemachineFreeLook mCameraStandard = null;
     //[SerializeField]
@@ -91,8 +92,8 @@ public class PlayerThrow : MonoBehaviour
             mPlayerMovement = GetComponent<PlayerMovement>();
         //if (mCharacterController == null)
         //    mCharacterController = GetComponent<CharacterController>();
-        //if (mCameraController == null)
-        //    mCameraController = GetComponent<PlayerCameraController>();
+        if (mCameraController == null)
+            mCameraController = GetComponent<PlayerCameraController>();
 
         //// Sets walk speed at awake. Does not respond to real-time changes. 
         //mWalkSpeedOriginal = mPlayerMovement.GetWalkSpeed();
@@ -336,7 +337,8 @@ public class PlayerThrow : MonoBehaviour
                     (mAimedThrowSpawn.position - Camera.main.transform.position)
                     .normalized
                     * mThrowStrength,
-                    true);
+                    true, 
+                    false);
 
                 // Cooldown start
                 mThrowCooldownTimer += Time.deltaTime;
@@ -353,7 +355,8 @@ public class PlayerThrow : MonoBehaviour
                     (mFreeThrowFocus.position - mFreeThrowSpawn.position)
                     .normalized
                     * mThrowStrength,
-                    true);
+                    true, 
+                    false);
 
                 // Cooldown start
                 mThrowCooldownTimer += Time.deltaTime;
@@ -366,11 +369,16 @@ public class PlayerThrow : MonoBehaviour
             {
                 // Model a 2nd degree polynomial, and use its derivative to 
                 // set the velocity. Use this velocity as parameter in Throw(). 
+                Throw(
+                    mFreeThrowSpawn.position,
+                    (mCameraController.GetLockonTarget().position - mFreeThrowSpawn.position).normalized * mThrowStrength,
+                    true,
+                    true);
             }
         }
 	}
 
-    private void Throw(Vector3 spawn, Vector3 velocity, bool destroy)
+    private void Throw(Vector3 spawn, Vector3 velocity, bool destroy, bool disableGravity)
     {
         GameObject snowball = Instantiate(
             mProjectile,
@@ -382,6 +390,8 @@ public class PlayerThrow : MonoBehaviour
 
         if (destroy)
             Destroy(snowball, mProjectileLifetime);
+        if (disableGravity)
+            snowball.GetComponent<Rigidbody>().useGravity = false;
 
         mCooldown = true;
     }

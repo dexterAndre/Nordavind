@@ -6,6 +6,7 @@ public class PlayerRoll : MonoBehaviour
 {
     /* 
         To do: 
+        - Maintain lock-on while rolling
     */
 
 
@@ -84,7 +85,8 @@ public class PlayerRoll : MonoBehaviour
     {
         if (Input.GetButtonDown("Fire2") 
             && mRollCooldownTimer == 0f
-            && mPlayerMovement.GetState() == PlayerMovement.State.Walk)
+            && 
+            (mPlayerMovement.GetState() == PlayerMovement.State.Walk || mPlayerMovement.GetState() == PlayerMovement.State.Lockon))
         {
             // Debug
             if (mIsDebuggingRoll)
@@ -173,6 +175,9 @@ public class PlayerRoll : MonoBehaviour
     {
         // Executing roll
         mPlayerMovement.SetState(PlayerMovement.State.Roll);
+
+        // If in lock-on mode
+        GetComponent<PlayerCameraController>().LockonToWalk();
 
         Vector3 inputVector;
         if (mRollSoftAdjustment)
